@@ -1,0 +1,20 @@
+# Installed by the launcher on first start (and contains this computer's folder paths)
+app/.runtime/
+
+# Python's cache
+__pycache__/
+*.pyc
+
+# Sorted copies exported while testing, e.g. "Demo wedding (sorted)"
+* (sorted)/
+* (sorted) */
+.rollmerge-output
+
+# Packaged copies: attach these to a GitHub Release instead
+*.zip
+
+# Files Mac and Windows create on their own
+.DS_Store
+._*
+Thumbs.db
+desktop.ini

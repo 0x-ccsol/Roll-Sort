@@ -1,2 +1,16 @@
-# Auto detect text files and perform LF normalization
+# Text files are stored with LF line endings and checked out to suit each computer.
 * text=auto
+
+# The Windows launcher must keep Windows (CRLF) line endings everywhere, including
+# GitHub's "Download ZIP", so it is stored exactly as it is.
+*.bat -text
+
+# The Mac launcher must keep Mac/Linux (LF) line endings.
+*.command text eol=lf
+
+# Photos and archives are never touched.
+*.jpg binary
+*.jpeg binary
+*.tif binary
+*.tiff binary
+*.zip binary
