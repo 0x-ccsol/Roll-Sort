@@ -1,0 +1,1904 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Roll Merge</title>
+<style>
+:root {
+  --bg: #121212;
+  --panel: #1b1b1b;
+  --panel-2: #242424;
+  --line: #333;
+  --text: #ece7df;
+  --muted: #9b958b;
+  --accent: #e9a23b;
+  --insert: #3ddc84;
+  --drop: #4b8bff;
+  --accent-ink: #1a1203;
+  --danger: #e0685a;
+  --radius: 10px;
+  --lane-0: #e9a23b;
+  --lane-1: #4fb6c2;
+  --lane-2: #b48df0;
+  --lane-3: #7cc46b;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  background: var(--bg); color: var(--text);
+  font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+button, input { font: inherit; color: inherit; }
+button {
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px;
+  padding: 8px 14px; cursor: pointer; white-space: nowrap;
+}
+button:hover:not(:disabled) { border-color: #555; background: #2c2c2c; }
+button:disabled { opacity: .4; cursor: default; }
+button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+button.primary:hover:not(:disabled) { background: #f3b257; border-color: #f3b257; }
+button.ghost { background: transparent; border-color: transparent; color: var(--muted); }
+button.ghost:hover:not(:disabled) { color: var(--text); background: var(--panel-2); border-color: var(--line); }
+button.small { padding: 4px 10px; font-size: 13px; }
+input[type=text], input[type=date] {
+  background: #0d0d0d; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; width: 100%;
+  color-scheme: dark;
+}
+input:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+kbd {
+  font: 12px var(--mono); background: #2a2a2a; border: 1px solid #444; border-bottom-width: 2px;
+  border-radius: 5px; padding: 1px 6px; color: var(--text);
+}
+.muted { color: var(--muted); }
+.mono { font-family: var(--mono); }
+.hidden { display: none !important; }
+
+/* top bar */
+.bar {
+  position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: 12px;
+  padding: 10px 18px; background: rgba(18,18,18,.92); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line);
+}
+.brand { display: flex; align-items: center; gap: 9px; font-weight: 650; letter-spacing: .01em; }
+.brand svg { width: 22px; height: 22px; }
+.bar .crumb { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; font-size: 13px; }
+.tabs { display: flex; gap: 2px; background: #0c0c0c; border: 1px solid var(--line); border-radius: 10px; padding: 3px; margin-left: 8px; }
+.tab { display: inline-flex; align-items: center; gap: 7px; border: 0; background: transparent; color: var(--muted); padding: 6px 12px; border-radius: 7px; font-size: 14px; }
+.tab:hover:not(:disabled) { background: var(--panel-2); color: var(--text); border: 0; }
+.tab.on { background: var(--panel-2); color: var(--text); box-shadow: inset 0 0 0 1px #444; }
+.tab .tn { font: 11px var(--mono); width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; background: #2a2a2a; color: var(--muted); }
+.tab.on .tn { background: var(--accent); color: var(--accent-ink); }
+.current { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; gap: 14px; margin: 0 0 28px; }
+.current .what { flex: 1; min-width: 0; }
+.current .what small { display: block; color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bar .spacer { flex: 1; }
+
+/* home */
+.home { max-width: 640px; margin: 0 auto; padding: 12vh 24px 60px; }
+.home h1 { font-size: 30px; line-height: 1.2; margin: 18px 0 10px; font-weight: 650; letter-spacing: -.01em; }
+.home p.lead { color: var(--muted); margin: 0 0 28px; font-size: 16px; }
+.home .pick { font-size: 16px; padding: 12px 22px; }
+.home .or { color: var(--muted); font-size: 13px; margin: 26px 0 8px; }
+.pathrow { display: flex; gap: 8px; }
+.tip { font-size: 13px; color: var(--muted); margin-top: 8px; }
+.err { color: var(--danger); margin-top: 12px; }
+.recent { margin-top: 44px; }
+.recent h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; margin: 0 0 10px; }
+.recent button {
+  display: flex; width: 100%; justify-content: space-between; text-align: left; margin-bottom: 6px; padding: 10px 14px;
+}
+.recent .path { color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; }
+
+/* setup */
+.page { max-width: 1240px; margin: 0 auto; padding: 26px 22px 120px; }
+.page h2 { font-size: 24px; margin: 0 0 6px; font-weight: 650; }
+.page .intro { color: var(--muted); margin: 0 0 22px; max-width: 760px; }
+.cams { display: grid; gap: 16px; grid-template-columns: repeat(var(--n, 2), minmax(0, 1fr)); align-items: start; }
+.cam { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px; border-top: 4px solid var(--c); }
+.cam-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.cam-head input { font-weight: 600; background: transparent; border-color: transparent; padding: 4px 6px; }
+.cam-head input:hover, .cam-head input:focus { border-color: var(--line); background: #0d0d0d; }
+.cam-head .count { color: var(--muted); font-size: 13px; white-space: nowrap; }
+.dot { width: 12px; height: 12px; border-radius: 50%; background: var(--c); flex: none; }
+.roll { background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px; margin-bottom: 10px; cursor: grab; transition: opacity .15s; }
+.roll:active { cursor: grabbing; }
+.roll.dragging { opacity: .35; }
+.roll .grip { color: var(--muted); font-size: 14px; letter-spacing: -2px; margin-left: auto; cursor: grab; user-select: none; }
+.drop-marker { height: 4px; border-radius: 2px; background: var(--c); box-shadow: 0 0 12px var(--c); margin: -2px 0 8px; }
+.rolls { min-height: 40px; }
+.rolls:has(.drop-marker) .empty-cam { display: none; }
+.cam.drop-target { border-color: var(--c); }
+.roll .strip { overflow-x: auto; overflow-y: hidden; padding-bottom: 4px; border-radius: 6px; overscroll-behavior-x: contain; scrollbar-color: #555 #1b1b1b; }
+.roll .strip-in { display: flex; gap: 4px; width: max-content; }
+.roll .strip .fr { position: relative; flex: none; height: 92px; min-width: 60px; border-radius: 4px; overflow: hidden; background: #000; cursor: zoom-in; }
+.roll .strip .fr img { height: 100%; width: auto; display: block; }
+.roll .strip .fr b { position: absolute; left: 3px; top: 3px; font: 600 10px var(--mono); background: rgba(0,0,0,.72); color: #ddd; padding: 0 4px; border-radius: 3px; pointer-events: none; }
+.roll .strip .fr:hover { box-shadow: inset 0 0 0 2px var(--c); }
+/* Chrome and Firefox use scrollbar-color above (the bar stays draggable); Safari, which doesn't know it, uses these */
+.roll .strip::-webkit-scrollbar { height: 10px; }
+.roll .strip::-webkit-scrollbar-track { background: #1b1b1b; border-radius: 5px; }
+.roll .strip::-webkit-scrollbar-thumb { background: #4a4a4a; border-radius: 5px; border: 2px solid #1b1b1b; }
+.roll .strip::-webkit-scrollbar-thumb:hover { background: #6a6a6a; }
+.roll .strip .more { flex: none; display: grid; place-items: center; padding: 0 8px; font-size: 12px; color: var(--muted); background: #111; }
+.roll .meta { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 14px; }
+.roll .meta .name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.roll .meta .n { color: var(--muted); font-size: 13px; white-space: nowrap; }
+.roll .meta .order { font-family: var(--mono); font-size: 12px; color: var(--accent-ink); background: var(--c); border-radius: 4px; padding: 0 6px; }
+.roll .acts { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+.empty-cam { border: 1px dashed var(--line); border-radius: var(--radius); padding: 22px; text-align: center; color: var(--muted); font-size: 14px; }
+.addcam { display: block; width: 100%; min-height: 50px; margin-top: 16px; border: 1px dashed var(--line); background: transparent; border-radius: 14px; color: var(--muted); font-size: 14px; }
+.addcam:hover { color: var(--text); border-color: #555; }
+.addcam.drop-target { border-color: var(--accent); color: var(--text); background: rgba(233,162,59,.06); }
+.footbar {
+  position: fixed; left: 0; right: 0; bottom: 0; display: flex; justify-content: flex-end; align-items: center; gap: 14px;
+  padding: 14px 22px; background: rgba(18,18,18,.94); border-top: 1px solid var(--line); backdrop-filter: blur(8px);
+}
+
+/* merge */
+.merge { display: flex; flex-direction: column; height: calc(100vh - 55px); }
+.progress { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted); }
+.progress .track { width: 160px; height: 6px; background: #2a2a2a; border-radius: 3px; overflow: hidden; }
+.progress .fill { height: 100%; background: var(--accent); transition: width .2s; }
+.timeline { flex: none; padding: 14px 18px 12px; border-bottom: 1px solid var(--line); background: #0f0f0f; }
+.timeline .label { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.tl-row { position: relative; display: flex; gap: 0; align-items: flex-end; height: calc(14vh + 16px); min-height: 108px; overflow-x: auto; overflow-y: hidden; padding-bottom: 6px; scrollbar-color: #444 transparent; }
+.tl-row > :first-child { margin-left: auto; }
+.tl-item { position: relative; height: calc(100% - 30px); flex: none; cursor: grab; border-radius: 4px; overflow: hidden; border-bottom: 3px solid var(--c); opacity: .75; }
+.tl-item.dragging { opacity: .25; }
+.tl-item img { pointer-events: none; }
+.tl-gap { flex: none; width: 10px; align-self: stretch; position: relative; cursor: pointer; }
+.tl-gap::after { content: ""; position: absolute; left: 50%; top: 30px; bottom: 0; width: 2px; transform: translateX(-50%); border-radius: 1px; background: transparent; }
+.tl-gap:hover::after { background: rgba(61,220,132,.55); }
+.tl-gap.cursor { width: 22px; }
+.tl-gap.cursor::after { width: 4px; background: var(--insert); box-shadow: 0 0 12px var(--insert); animation: blink 1s steps(1, end) infinite; }
+.tl-gap.cursor::before { content: "▼"; position: absolute; top: 18px; left: 50%; transform: translateX(-50%); color: var(--insert); font-size: 11px; line-height: 1; animation: blink 1s steps(1, end) infinite; }
+@keyframes blink { 50% { opacity: .15; } }
+/* while dragging a photo: blinking blue bar centred in the gap it will land in, arrow at the bottom */
+.tl-gap.dropping { width: 22px; }
+.tl-gap.dropping::after { top: 26px; bottom: 14px; width: 4px; background: var(--drop); box-shadow: 0 0 12px var(--drop); animation: blink .8s steps(1, end) infinite; }
+.tl-gap.dropping::before { content: "▲"; top: auto; bottom: 0; color: var(--drop); font-size: 11px; line-height: 1; animation: blink .8s steps(1, end) infinite; position: absolute; left: 50%; transform: translateX(-50%); }
+.insertbar { text-transform: none; letter-spacing: normal; display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--text); background: rgba(61,220,132,.10); border: 1px solid rgba(61,220,132,.55); border-radius: 8px; padding: 4px 6px 4px 12px; }
+.lane [draggable=true] { cursor: pointer; }
+.lane .dragging { opacity: .35; }
+.lanes.drop-target { outline: 2px dashed var(--accent); outline-offset: -6px; border-radius: 14px; }
+.tl-marker { flex: none; width: 4px; align-self: stretch; margin-top: 30px; border-radius: 2px; background: var(--drop); box-shadow: 0 0 12px var(--drop); }
+/* folder start: an amber post with the folder's name on a flag above the photos */
+.tl-div { flex: none; align-self: stretch; position: relative; width: 4px; margin: 0 4px 0 10px; background: var(--accent); border-radius: 2px; }
+.tl-div span { position: absolute; left: 0; top: 0; z-index: 1; display: block; box-sizing: border-box; max-width: 400px;
+  padding: 3px 10px 4px 8px; border-radius: 0 6px 6px 0; background: var(--accent); color: var(--accent-ink);
+  font-size: 13px; font-weight: 800; line-height: 15px; letter-spacing: .01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.folders { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.flabel { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-right: 4px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 6px 0 12px; border-radius: 15px; background: var(--panel-2); border: 1px solid var(--line); font-size: 13px; cursor: pointer; user-select: none; }
+.chip:hover { border-color: #555; }
+.chip.active { background: rgba(233,162,59,.14); border-color: var(--accent); color: var(--text); }
+.chip.active .cname::before { content: "● "; color: var(--accent); }
+.chip .fcount { font: 11px var(--mono); color: var(--muted); }
+.chip .fx { border: 0; background: transparent; padding: 0 4px; height: 22px; color: var(--muted); font-size: 13px; border-radius: 11px; }
+.chip .fx:hover { color: var(--text); background: #333; }
+.chip .fsort { border: 1px solid rgba(61,220,132,.45); background: transparent; color: var(--insert); height: 22px; padding: 0 8px; margin-left: 2px; border-radius: 11px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+.chip .fsort:hover { background: rgba(61,220,132,.16); border-color: var(--insert); }
+.tl-div.pulse span { animation: divpulse 1.4s ease-out; }
+@keyframes divpulse { 0%, 40% { box-shadow: 0 0 0 3px #fff, 0 0 18px var(--accent); } 100% { box-shadow: 0 0 0 0 transparent; } }
+.chip.drop-target { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(233,162,59,.35); }
+button.chip { padding: 0 12px; color: var(--muted); }
+button.chip:hover { color: var(--text); }
+.chipform input { height: 30px; width: 180px; border-radius: 15px; padding: 0 12px; font-size: 13px; }
+.chip[draggable=true] { cursor: grab; }
+.chip.dragging { opacity: .35; }
+.chip-marker { display: inline-block; width: 3px; height: 26px; border-radius: 2px; background: var(--drop); box-shadow: 0 0 10px var(--drop); }
+.tl-div.empty { background: repeating-linear-gradient(to bottom, var(--accent) 0 5px, transparent 5px 9px); }
+.tl-div.empty span { background: #0f0f0f; color: var(--accent); box-shadow: inset 0 0 0 2px var(--accent); font-style: italic; font-weight: 700; }
+.fhint { font-size: 12px; color: var(--muted); margin-left: 6px; }
+.tl-item:hover { opacity: 1; }
+.tl-item img { height: 100%; width: auto; display: block; background: #000; }
+
+.tl-item .num { position: absolute; left: 4px; top: 4px; font: 11px var(--mono); background: rgba(0,0,0,.7); padding: 0 5px; border-radius: 3px; }
+.tl-empty { height: 100%; display: grid; place-items: center; width: 100%; color: var(--muted); border: 1px dashed var(--line); border-radius: 8px; text-align: center; padding: 0 20px; }
+.lanes { flex: 1; min-height: 0; display: grid; gap: 14px; padding: 14px 18px; }
+.lane { min-height: 0; display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 12px; border-top: 4px solid var(--c); }
+.lane-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 14px; }
+.lane-head .name { font-weight: 600; }
+.lane-head .left { color: var(--muted); }
+.lane-head .spacer { flex: 1; }
+.next {
+  flex: 1; min-height: 0; position: relative; padding: 0; border: 0; border-radius: var(--radius); overflow: hidden;
+  background: #000; display: grid; place-items: center; cursor: pointer;
+}
+.next img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; object-position: center; display: block; }
+.next:hover, .next.inrun { box-shadow: inset 0 0 0 3px var(--c); }
+.next .cta {
+  position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); background: rgba(0,0,0,.75); color: #fff;
+  padding: 6px 12px; border-radius: 20px; font-size: 13px; display: flex; gap: 8px; align-items: center; pointer-events: none;
+}
+.next .zoom {
+  position: absolute; right: 10px; top: 10px; width: 64px; height: 64px; padding: 0; display: grid; place-items: center; z-index: 2;
+  background: rgba(0,0,0,.65); border: 1px solid rgba(255,255,255,.25); border-radius: 12px; cursor: zoom-in;
+}
+.next .zoom:hover { background: rgba(0,0,0,.85); border-color: rgba(255,255,255,.6); }
+.next .zoom svg { width: 30px; height: 30px; }
+.next .fname, .next .cta { z-index: 1; }
+.badge { position: absolute; left: 8px; top: 8px; font-size: 12px; background: var(--c); color: var(--accent-ink); padding: 2px 8px; border-radius: 4px; font-weight: 600; pointer-events: none; }
+.fname { position: absolute; left: 8px; bottom: 8px; font: 11px var(--mono); color: #ddd; background: rgba(0,0,0,.6); padding: 1px 6px; border-radius: 3px; pointer-events: none; }
+.upnext { flex: none; display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin-top: 8px; }
+.upnext button { position: relative; padding: 0; border: 0; height: 64px; border-radius: 6px; overflow: hidden; background: #000; }
+.upnext img { width: 100%; height: 100%; object-fit: cover; object-position: center; display: block; opacity: .8; }
+.upnext button:hover img, .upnext button.inrun img { opacity: 1; }
+.upnext button.inrun { box-shadow: inset 0 0 0 2px var(--c); }
+.upnext .plus { position: absolute; right: 3px; bottom: 3px; font: 11px var(--mono); background: rgba(0,0,0,.75); padding: 0 4px; border-radius: 3px; }
+.upnext .rs, .upnext .re { position: absolute; top: 0; bottom: 0; width: 4px; background: var(--c); }
+.upnext .rs { left: 0; }
+.upnext .re { right: 0; }
+.qtag { position: absolute; left: 0; right: 0; top: 0; padding: 3px 4px; font: 700 10px/1.1 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  letter-spacing: .06em; text-transform: uppercase; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+.qtag.start { background: var(--c); color: #111; }
+.qtag.end { background: rgba(0,0,0,.85); color: var(--c); box-shadow: inset 0 -2px 0 var(--c); }
+.qtag.both { background: linear-gradient(90deg, var(--c) 50%, rgba(0,0,0,.85) 50%); color: #fff; text-shadow: 0 0 3px #000; }
+/* big preview: unmissable start/end of roll */
+.rollflags { position: absolute; left: 12px; top: 12px; right: 90px; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; z-index: 1; pointer-events: none; }
+.rollflag { display: inline-flex; flex-direction: column; padding: 9px 16px 10px; border-radius: 10px; max-width: 100%;
+  font-weight: 800; font-size: 20px; line-height: 1.1; letter-spacing: .03em; text-transform: uppercase; box-shadow: 0 4px 18px rgba(0,0,0,.45); }
+.rollflag small { font: 600 13px/1.3 var(--mono); letter-spacing: 0; text-transform: none; opacity: .85; margin-top: 3px; }
+.rollflag.start { background: var(--c); color: #111; }
+.rollflag.end { background: rgba(0,0,0,.88); color: var(--c); border: 2px solid var(--c); }
+.edge { position: absolute; top: 0; bottom: 0; width: 8px; background: var(--c); z-index: 1; pointer-events: none; }
+.edge.start { left: 0; }
+.edge.end { right: 0; }
+.lane.done { justify-content: center; align-items: center; color: var(--muted); }
+.hint { flex: none; text-align: center; font-size: 13px; color: var(--muted); padding: 0 18px 12px; }
+.hint kbd { margin: 0 2px; }
+.finale { flex: 1; display: grid; place-items: center; padding: 20px; }
+.finale .card { max-width: 520px; text-align: center; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 30px; }
+.finale h3 { margin: 0 0 8px; font-size: 22px; }
+.finale p { color: var(--muted); margin: 0 0 20px; }
+.finale .strip { display: flex; gap: 4px; justify-content: center; margin-bottom: 20px; }
+.finale .strip img { height: 60px; border-radius: 4px; }
+.flash { animation: flash .6s ease-out; opacity: 1; }
+@keyframes flash { from { box-shadow: 0 0 0 3px var(--c); } to { box-shadow: 0 0 0 0 transparent; } }
+
+/* review */
+.review-top { display: grid; grid-template-columns: 1fr 380px; gap: 22px; align-items: start; }
+.export { position: sticky; top: 78px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
+.export h3 { margin: 0 0 14px; font-size: 17px; }
+.field { margin-bottom: 14px; }
+.field > label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 5px; }
+.field small { display: block; color: var(--muted); font-size: 12px; margin-top: 5px; }
+.radio { display: flex; align-items: center; gap: 8px; font-size: 14px; margin: 4px 0; cursor: pointer; }
+.radio input { accent-color: var(--accent); }
+.radio.check { align-items: flex-start; margin: 2px 0 12px; }
+.radio.check input { margin-top: 3px; }
+.radio.check small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+.example { font: 12px var(--mono); color: var(--accent); margin-top: 6px; word-break: break-all; }
+.bigbtn { width: 100%; padding: 12px; font-size: 15px; margin-top: 4px; }
+.jobbar { height: 8px; background: #2a2a2a; border-radius: 4px; overflow: hidden; margin: 12px 0 6px; }
+.jobbar div { height: 100%; background: var(--accent); width: 0; transition: width .2s; }
+.ok { color: #8fd18a; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.cell { position: relative; padding: 0; border: 0; background: #000; border-radius: 6px; overflow: hidden; aspect-ratio: 3/2; border-bottom: 3px solid var(--c); cursor: zoom-in; }
+.cell img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.cell .num { position: absolute; left: 4px; top: 4px; font: 11px var(--mono); background: rgba(0,0,0,.72); padding: 0 5px; border-radius: 3px; }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--muted); margin: 0 0 14px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.ghead { display: flex; align-items: baseline; gap: 10px; margin: 22px 0 10px; font-size: 16px; }
+.ghead:first-child { margin-top: 0; }
+.ghead .n { font: 12px var(--mono); color: var(--muted); }
+.ghead .path { font: 12px var(--mono); color: var(--accent); }
+.ghead .gname { all: unset; cursor: pointer; font-weight: 700; font-size: 17px; display: inline-flex; align-items: baseline; gap: 6px; border-radius: 6px; padding: 1px 6px; margin-left: -6px; }
+.ghead .gname:hover { background: var(--panel-2); }
+.ghead .gname .pen { font-size: 13px; color: var(--muted); }
+.ghead .gname:hover .pen { color: var(--text); }
+.ghead .chipform input { width: 260px; }
+.cell[draggable=true] { cursor: grab; }
+.cell.dragging { opacity: .25; }
+.rv-marker { position: fixed; width: 4px; border-radius: 2px; background: var(--drop); box-shadow: 0 0 12px var(--drop); pointer-events: none; z-index: 50; animation: blink .8s steps(1, end) infinite; }
+.ghead.drop-target { color: var(--drop); }
+
+/* Sort tab modes: remove from timeline (pink) and banish from sorting (red) */
+:root { --remove: #f472b6; --banish: #ef4444; }
+.tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; text-transform: none; letter-spacing: normal; margin-left: auto; }
+.modebox { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 11px 0 8px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel-2);
+  color: var(--text); font-size: 12.5px; cursor: pointer; user-select: none; white-space: nowrap; }
+.modebox input { margin: 0; accent-color: var(--c); cursor: pointer; }
+.modebox:hover { border-color: var(--c); }
+.modebox.on { border-color: var(--c); font-weight: 700; }
+.modebox.remove.on { background: rgba(244,114,182,.18); }
+.modebox.banish.on { background: rgba(239,68,68,.18); }
+.modebar { display: flex; align-items: center; gap: 10px; text-transform: none; letter-spacing: normal; font-size: 13px; color: var(--text);
+  border: 2px solid var(--c); border-radius: 8px; padding: 4px 6px 4px 12px; }
+.modebar.remove { background: rgba(244,114,182,.12); }
+.modebar.banish { background: rgba(239,68,68,.12); }
+.modebar b { color: var(--c); }
+.merge.mode-remove .timeline, .merge.mode-banish .timeline { box-shadow: inset 0 0 0 2px var(--c); }
+.merge.mode-remove { --c: var(--remove); }
+.merge.mode-banish { --c: var(--banish); }
+.merge.mode-remove .tl-item, .merge.mode-banish .tl-item { cursor: pointer; opacity: .95; }
+.merge.mode-remove .lanes, .merge.mode-remove .finale, .merge.mode-remove .hint { opacity: .45; }
+.merge.mode-remove .tl-item:hover { box-shadow: inset 0 0 0 3px var(--remove); opacity: 1; }
+.merge.mode-banish .tl-item:hover, .merge.mode-banish .lane .next:hover, .merge.mode-banish .upnext button:hover { box-shadow: inset 0 0 0 3px var(--banish); opacity: 1; }
+.merge.mode-banish .finale .strip img { cursor: pointer; }
+.merge.mode-banish .finale .strip img:hover { outline: 3px solid var(--banish); }
+.merge.mode-remove .tl-item:hover::after, .merge.mode-banish .tl-item:hover::after, .merge.mode-banish .upnext button:hover::after, .merge.mode-banish .lane .next:hover::after {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 5; padding: 3px 0; text-align: center; font-size: 11px; font-weight: 800; pointer-events: none; }
+.merge.mode-remove .tl-item:hover::after { content: "↓ To board"; background: var(--remove); color: #2a0718; }
+.merge.mode-banish .tl-item:hover::after, .merge.mode-banish .upnext button:hover::after, .merge.mode-banish .lane .next:hover::after { content: "⊘ Banish"; background: var(--banish); color: #fff; }
+.merge.mode-banish .lane .next:hover::after { font-size: 18px; padding: 8px 0; }
+/* banished photos page */
+.banished-ov .ov-grid button { position: relative; }
+.banished-ov .ov-grid button:hover { box-shadow: inset 0 0 0 3px var(--insert); }
+.banished-ov .ov-grid button:hover::after { content: "↺ Recover"; position: absolute; left: 0; right: 0; bottom: 0; padding: 4px 0; background: var(--insert); color: #04210f; font-size: 12px; font-weight: 800; text-align: center; }
+.ov-empty { color: var(--muted); text-align: center; padding: 60px 20px; font-size: 15px; }
+/* review: undo / revert */
+.revrow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 0 14px; font-size: 13px; color: var(--muted); }
+.revrow + .revrow { margin-top: -6px; }
+
+/* overlays */
+.overlay { position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,.92); display: flex; flex-direction: column; }
+.ov-top { display: flex; align-items: center; gap: 12px; padding: 12px 16px; }
+.ov-top .cap { flex: 1; font-size: 14px; color: #ccc; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ov-body { flex: 1; min-height: 0; display: grid; grid-template-columns: 60px 1fr 60px; align-items: center; padding: 0 10px 16px; }
+.ov-body { grid-template-rows: minmax(0, 1fr); }
+.ov-img { position: relative; height: 100%; min-height: 0; }
+.ov-img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.ov-nav { height: 60px; width: 48px; padding: 0; font-size: 22px; background: rgba(255,255,255,.06); border-color: transparent; }
+.ov-grid { flex: 1; overflow: auto; padding: 4px 20px 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; align-content: start; }
+.ov-grid button { padding: 0; border: 0; background: #000; aspect-ratio: 3/2; border-radius: 6px; overflow: hidden; position: relative; cursor: zoom-in; }
+.ov-grid img { width: 100%; height: 100%; object-fit: contain; }
+.ov-grid .num { position: absolute; left: 4px; top: 4px; font: 11px var(--mono); background: rgba(0,0,0,.72); padding: 0 5px; border-radius: 3px; }
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: #2b2b2b; border: 1px solid #444; padding: 10px 16px; border-radius: 10px; z-index: 60; font-size: 14px; }
+.choice { margin: auto; width: min(520px, calc(100% - 32px)); background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 22px; }
+.choice h3 { margin: 0 0 6px; font-size: 18px; }
+.choice p { margin: 0 0 16px; color: var(--muted); }
+.choice .opt { display: block; width: 100%; text-align: left; white-space: normal; padding: 12px 14px; margin-bottom: 8px; }
+.choice .opt b { display: block; font-weight: 600; }
+.choice .opt span { display: block; font-size: 13px; color: var(--muted); margin-top: 2px; }
+.choice .cancel { margin-top: 6px; }
+.stopped { height: 100vh; display: grid; place-items: center; text-align: center; color: var(--muted); padding: 0 24px; }
+.stopped p { max-width: 520px; margin: 10px auto; line-height: 1.5; }
+.stopped .stopped-title { color: var(--text); font-size: 18px; font-weight: 600; }
+
+@media (max-width: 900px) {
+  .review-top { grid-template-columns: 1fr; }
+  .export { position: static; }
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+"use strict";
+const params = new URLSearchParams(location.search);
+const TOKEN = params.get("t") || "";
+const LANE_COLORS = ["var(--lane-0)", "var(--lane-1)", "var(--lane-2)", "var(--lane-3)"];
+const MAX_CAMERAS = 4;
+const app = document.getElementById("app");
+
+let S = null;          // the open wedding
+let view = "home";
+let overlay = null;    // {kind:'photo'|'roll', ...}
+let quitting = false, stopped = false;  // see showStopped()
+let homeError = "";
+let exportJob = null;  // {id, done, total, finished, error, outdir}
+
+const LOGO = `<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="2.5" y="5" width="13" height="14" rx="2" stroke="var(--lane-0)" stroke-width="2"/><rect x="8.5" y="5" width="13" height="14" rx="2" stroke="var(--lane-1)" stroke-width="2"/></svg>`;
+const ZOOM_ICON = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>`;
+
+// ---------------------------------------------------------------- helpers
+function esc(s) { return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function img(id, size) { return `/img?t=${encodeURIComponent(TOKEN)}&g=${S.gen}&id=${id}&s=${size || "t"}`; }
+function range(start, n) { return Array.from({length: n}, (_, i) => start + i); }
+function plural(n, word) { return `${n} ${word}${n === 1 ? "" : "s"}`; }
+function shortName(name) { const stem = name.replace(/\.[^.]+$/, ""); return stem.length > 12 ? "…" + stem.slice(-6) : stem; }
+
+async function api(path, body) {
+  let res;
+  try {
+    res = await fetch(path, {
+      method: body === undefined ? "GET" : "POST",
+      headers: {"X-Token": TOKEN, "Content-Type": "application/json"},
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+  } catch (e) {
+    if (!quitting) showStopped(false);
+    throw new Error("Roll Merge isn't running. Start it again from its folder.");
+  }
+  if (res.status === 403 && !quitting) showStopped(true);  // this tab belongs to an earlier run of Roll Merge
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || data.error) throw new Error(data.error || `Request failed (${res.status})`);
+  return data;
+}
+
+function toast(msg, ms) {
+  if (stopped) return;  // the stopped screen already says it all
+  document.querySelectorAll(".toast").forEach(t => t.remove());  // newest message replaces the old one
+  const el = document.createElement("div");
+  el.className = "toast"; el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), ms || 2600);
+}
+
+// ---------------------------------------------------------------- model
+// S.order    photo ids placed so far, in shooting order
+// S.folderOf folder index for each entry of S.order (ignored while S.folders is empty)
+// S.folders  [{name}]; S.active = folder that newly placed photos go into
+// S.history  undo snapshots
+function rollOf(id) {
+  for (let r = 0; r < S.rolls.length; r++) {
+    const roll = S.rolls[r];
+    if (id >= roll.start && id < roll.start + roll.count) return r;
+  }
+  return -1;
+}
+function laneOfRoll(r) { return S.lanes.findIndex(l => l.rolls.includes(r)); }
+function laneFrames(l) { return S.lanes[l].rolls.flatMap(r => range(S.rolls[r].start, S.rolls[r].count)); }
+
+function derive() {
+  const frames = S.lanes.map((_, l) => laneFrames(l));
+  const laneOf = new Map();
+  frames.forEach((f, l) => f.forEach(id => laneOf.set(id, l)));
+  const out = new Set(S.order);  // placed or banished: either way not waiting on the board
+  for (const id of S.banished || []) out.add(id);
+  const next = frames.map(f => f.filter(id => !out.has(id)));
+  const merged = S.order.map((id, k) => ({id, lane: laneOf.get(id), folder: S.folderOf[k] || 0}));
+  // total = photos that are part of the sort (banished ones don't count)
+  return {frames, next, merged, laneOf, total: frames.reduce((a, f) => a + f.length, 0) - (S.banished || []).length};
+}
+
+// Everything undo can bring back. Also used for the Review tab's "revert" starting point.
+function stateCopy() {
+  return {order: S.order.slice(), folderOf: S.folderOf.slice(), folders: S.folders.map(f => ({name: f.name})), active: S.active,
+          cursor: S.cursor ? {...S.cursor} : null, banished: S.banished.slice()};
+}
+function sigOf(x) { return JSON.stringify([x.order, x.folderOf, x.folders.map(f => f.name), x.banished || []]); }
+function stateSig() { return sigOf(S); }
+
+function snapshot() {
+  S.history.push(stateCopy());
+  if (S.history.length > 80) S.history.shift();
+}
+
+// Each folder is one unbroken block on the timeline, in the order of the folder bar.
+// normalize() enforces that after every change, so a folder can never appear twice.
+function normalize() {
+  if (!S.folders.length) return;
+  const idx = S.order.map((_, k) => k).sort((a, b) => S.folderOf[a] - S.folderOf[b] || a - b);
+  S.order = idx.map(k => S.order[k]);
+  S.folderOf = idx.map(k => S.folderOf[k]);
+}
+
+// [start, end) positions of folder f's block (for an empty folder, start === end = where it sits).
+function blockRange(f) {
+  let start = 0, n = 0;
+  for (const x of S.folderOf) { if (x < f) start++; else if (x === f) n++; }
+  return [start, start + n];
+}
+
+// Where the next placed photo goes: the green bar.
+function insertPoint() {
+  const len = S.order.length;
+  if (!S.folders.length) return {pos: S.cursor ? Math.min(S.cursor.pos, len) : len, folder: 0};
+  const f = Math.min(S.cursor ? S.cursor.folder : S.active, S.folders.length - 1);
+  const [a, b] = blockRange(f);
+  return {pos: S.cursor ? Math.min(Math.max(S.cursor.pos, a), b) : b, folder: f};
+}
+
+function take(l, n) {
+  const {next} = derive();
+  const ids = next[l].slice(0, n);
+  if (!ids.length) return;
+  snapshot();
+  const ip = insertPoint();
+  S.order.splice(ip.pos, 0, ...ids);
+  S.folderOf.splice(ip.pos, 0, ...ids.map(() => ip.folder));
+  if (S.cursor) S.cursor = {pos: ip.pos + ids.length, folder: ip.folder};  // keep going from just after them
+  if (ip.pos + ids.length === S.order.length) S.scrollToEnd = true; else S.scrollToCursor = true;
+  S.flashIds = new Set(ids);
+  save(); render();
+}
+
+function undo() {
+  const snap = S.history.pop();
+  if (!snap) return;
+  S.order = snap.order; S.folderOf = snap.folderOf; S.folders = snap.folders; S.active = snap.active;
+  S.cursor = snap.cursor || null;
+  S.banished = Array.isArray(snap.banished) ? snap.banished : [];
+  S.keepScroll = true;
+  save(); render();
+}
+
+function rewindTo(k) {
+  snapshot();
+  S.order = S.order.slice(0, k + 1);
+  S.folderOf = S.folderOf.slice(0, k + 1);
+  S.cursor = null;
+  S.scrollToEnd = true;
+  save();
+}
+
+function movePhoto(from, to, target) {
+  // `to` is the position in the list once the photo has been taken out;
+  // `target` is the folder of the drop spot (each gap belongs to one folder)
+  if (to === from && (target === undefined || target === S.folderOf[from])) return;
+  snapshot();
+  S.keepScroll = true;
+  const [id] = S.order.splice(from, 1);
+  const [own] = S.folderOf.splice(from, 1);
+  let folder = own;
+  if (S.folders.length) {
+    if (target !== undefined) folder = target;
+    else {
+      const left = to > 0 ? S.folderOf[to - 1] : undefined;
+      const right = to < S.folderOf.length ? S.folderOf[to] : undefined;
+      if (own !== left && own !== right) folder = left !== undefined ? left : right !== undefined ? right : own;
+    }
+  }
+  S.order.splice(to, 0, id);
+  S.folderOf.splice(to, 0, folder);
+  S.flashIds = new Set([id]);
+  if (S.cursor) {  // keep the insert spot next to the same photos
+    let pos = S.cursor.pos;
+    if (from < pos) pos--;
+    if (to < pos) pos++;
+    S.cursor.pos = pos;
+  }
+  warnFrameOrder(id);
+  save(); render();
+}
+
+// The frames of one camera should stay in frame order: warn if a manual move breaks it.
+function warnFrameOrder(id) {
+  const {merged, laneOf, next} = derive();
+  const lane = laneOf.get(id);
+  const frameIdx = new Map(laneFrames(lane).map((x, i) => [x, i]));
+  let last = -1, ok = true;
+  for (const m of merged) if (m.lane === lane) { const i = frameIdx.get(m.id); if (i < last) { ok = false; break; } last = i; }
+  const skipped = next[lane].some(x => frameIdx.get(x) < frameIdx.get(id));
+  if (!ok) toast(`Heads up: that puts a ${S.lanes[lane].name} photo before an earlier frame from the same camera. Z undoes.`);
+  else if (skipped) toast(`Placed out of turn: earlier ${S.lanes[lane].name} frames are still waiting on the board.`);
+}
+
+// Drag from the board straight into the strip: place just this one photo at position `to`.
+function placeAt(id, to, folder) {
+  if (S.order.includes(id)) return;
+  snapshot();
+  if (folder === undefined) folder = S.cursor ? S.cursor.folder : S.active;
+  if (S.folders.length && folder === undefined) {
+    if (to > 0) folder = S.folderOf[to - 1];
+    else if (S.folderOf.length) folder = S.folderOf[0];
+  }
+  S.order.splice(to, 0, id);
+  S.folderOf.splice(to, 0, S.folders.length ? folder : 0);
+  if (S.cursor && to < S.cursor.pos) S.cursor.pos++;
+  S.keepScroll = true;
+  S.flashIds = new Set([id]);
+  warnFrameOrder(id);
+  save(); render();
+}
+
+function assignFolder(k, f) {
+  if (S.folderOf[k] === f) return;
+  snapshot();
+  S.folderOf[k] = f;
+  toast(`Moved photo #${k + 1} into “${S.folders[f].name}”.`);
+  save(); render();
+}
+
+function addFolders(names) {
+  S.addingFolder = false;
+  names = names.map(n => n.trim()).filter(Boolean);
+  if (!names.length) return render();
+  snapshot();
+  if (!S.folders.length) {  // first folders: everything placed so far goes into the first one
+    for (const name of names) S.folders.push({name});
+    S.active = 0; S.cursor = null; S.folderOf = S.order.map(() => 0);
+    return save(), render();
+  }
+  // A new folder goes where the green bar is: before the folder whose start it marks,
+  // otherwise straight after the folder it's in (folders are never split in two).
+  const ip = insertPoint();
+  const [a, b] = blockRange(ip.folder);
+  let at = S.folders.length;
+  if (S.cursor || ip.pos !== S.order.length) at = (ip.pos === a && b > a) ? ip.folder : ip.folder + 1;
+  S.folders.splice(at, 0, ...names.map(name => ({name})));
+  const bump = f => f >= at ? f + names.length : f;
+  S.folderOf = S.folderOf.map(bump);
+  S.active = at;          // start filling the new folder straight away
+  S.cursor = null;        // the green bar now sits where the new folder starts
+  save(); render();
+}
+
+// Drag a folder chip to a new spot: its photos move with it on the timeline.
+function moveFolder(from, to) {
+  const perm = S.folders.map((_, i) => i);  // perm[newIndex] = oldIndex
+  perm.splice(from, 1); perm.splice(to, 0, from);
+  if (perm.every((o, i) => o === i)) return;
+  snapshot();
+  const newOf = []; perm.forEach((old, i) => { newOf[old] = i; });
+  let offset = null;
+  if (S.cursor) offset = S.cursor.pos - blockRange(S.cursor.folder)[0];
+  S.folders = perm.map(o => S.folders[o]);
+  S.folderOf = S.folderOf.map(f => newOf[f]);
+  S.active = newOf[S.active];
+  if (S.cursor) S.cursor.folder = newOf[S.cursor.folder];
+  normalize();
+  if (S.cursor) S.cursor.pos = blockRange(S.cursor.folder)[0] + offset;
+  S.keepScroll = true;
+  save(); render();
+}
+
+function renameFolder(i, name) {
+  name = name.trim();
+  if (name && name !== S.folders[i].name) { snapshot(); S.folders[i].name = name; save(); }
+  S.renaming = undefined; render();
+}
+
+// Take photos (by position) off the timeline: they go back to their camera on the board.
+function unplace(positions) {
+  const drop = new Set(positions);
+  if (!drop.size) return;
+  if (S.cursor) S.cursor.pos -= positions.filter(k => k < S.cursor.pos).length;
+  S.order = S.order.filter((_, k) => !drop.has(k));
+  S.folderOf = S.folderOf.filter((_, k) => !drop.has(k));
+}
+
+function sendToBoard(k) {
+  snapshot(); unplace([k]);
+  toast("Sent back to the board. It's waiting in its camera's lane again.");
+  S.keepScroll = true;
+  save(); render();
+}
+
+// ---- banish: take a photo out of the sort completely (bad frames, exact duplicates). Never deletes anything.
+function banishPlaced(k) {
+  snapshot();
+  const id = S.order[k];
+  unplace([k]);
+  S.banished.push(id);
+  toast(`Banished #${k + 1}. Z undoes it, or recover it any time from “Banished”.`, 3500);
+  S.keepScroll = true;
+  save(); render();
+}
+
+function banishBoard(id) {
+  if (S.banished.includes(id) || S.order.includes(id)) return;
+  snapshot();
+  S.banished.push(id);
+  toast("Banished. Z undoes it, or recover it any time from “Banished”.", 3500);
+  save(); render();
+}
+
+function recover(id) {
+  if (!S.banished.includes(id)) return;
+  snapshot();
+  S.banished = S.banished.filter(x => x !== id);
+  toast("Recovered. It's back on the board, in its camera's lane.", 3500);
+  save(); render();
+}
+
+function recoverAll() {
+  if (!S.banished.length) return;
+  snapshot();
+  const n = S.banished.length;
+  S.banished = []; overlay = null;
+  toast(`Recovered ${plural(n, "photo")}. They're back on the board.`, 3500);
+  save(); render();
+}
+
+// ---- Sort tab modes
+function setMode(m) {
+  S.mode = m || null;
+  if (m === "remove") toast("Remove mode is on: any photo you click in the strip goes back down to the board. Untick the box (or press Esc) to go back to normal.", 6500);
+  if (m === "banish") toast("Banish mode is on: any photo you click, in the strip or on the board, is banished from sorting. Untick the box (or press Esc) to go back to normal.", 6500);
+  render();
+}
+function modeBlocked() {
+  return `${S.mode === "remove" ? "Remove" : "Banish"} mode is on. Untick it (or press Esc) to place photos again.`;
+}
+
+// ---- Review tab: put everything back the way it was on arrival from the Sort tab
+function revertReview() {
+  const b = S.reviewBase;
+  if (!b || sigOf(b) === stateSig()) return;
+  overlay = {kind: "choice", title: "Revert all changes made on this screen?",
+             text: "Every photo move, folder rename and recovery made here since you came from the Sort tab is undone. You can still press Undo afterwards if you change your mind.",
+             options: [{value: "yes", label: "Revert all review changes", sub: "Back to how it was when you arrived from the Sort tab."}],
+             onPick: () => {
+               snapshot();
+               S.order = b.order.slice(); S.folderOf = b.folderOf.slice(); S.folders = b.folders.map(f => ({name: f.name}));
+               S.active = b.active; S.cursor = b.cursor ? {...b.cursor} : null; S.banished = (b.banished || []).slice();
+               toast("Reverted: back to how it was when you came from the Sort tab.", 3500);
+               save(); render();
+             }};
+  renderOverlay();
+}
+
+function setCursor(pos, folder) {
+  if (S.folders.length) {
+    S.active = folder;
+    // the end of a folder is its normal spot, so no special marker is needed there
+    S.cursor = pos === blockRange(folder)[1] ? null : {pos, folder};
+  } else {
+    S.cursor = pos >= S.order.length ? null : {pos, folder: 0};
+  }
+  S.scrollToCursor = true;
+  render(); save();
+}
+
+function deleteFolder(i) {
+  const name = S.folders[i].name;
+  const positions = S.folderOf.map((f, k) => f === i ? k : -1).filter(k => k >= 0);
+  if (!positions.length) return applyDelete(i, "empty");
+  const opts = [];
+  if (i > 0) opts.push({value: "prev", label: `Move them into “${S.folders[i - 1].name}”`, sub: "The folder before it."});
+  if (i < S.folders.length - 1) opts.push({value: "next", label: `Move them into “${S.folders[i + 1].name}”`, sub: "The folder after it."});
+  opts.push({value: "board", label: "Send them back to the board", sub: "They go back into their camera lanes, ready to be placed again wherever you choose."});
+  if (S.folders.length === 1) opts.push({value: "flat", label: "Keep them where they are", sub: "Just stop using folders."});
+  overlay = {kind: "choice", title: `Delete “${name}”?`, text: `It holds ${plural(positions.length, "photo")}. What should happen to them?`,
+             options: opts, onPick: v => applyDelete(i, v)};
+  renderOverlay();
+}
+
+function applyDelete(i, mode) {
+  snapshot();
+  const shift = f => f > i ? f - 1 : f;
+  if (mode === "prev" || mode === "next") {
+    const target = mode === "prev" ? i - 1 : i + 1;
+    S.folderOf = S.folderOf.map(f => shift(f === i ? target : f));
+  } else if (mode === "board") {
+    unplace(S.folderOf.map((f, k) => f === i ? k : -1).filter(k => k >= 0));
+    S.folderOf = S.folderOf.map(shift);
+  } else {
+    S.folderOf = S.folderOf.map(shift);
+  }
+  const fallback = mode === "next" ? i : Math.max(0, i - 1);
+  const fix = f => f === i ? fallback : shift(f);
+  S.active = fix(S.active);
+  if (S.cursor) S.cursor.folder = fix(S.cursor.folder);
+  S.folders.splice(i, 1);
+  if (!S.folders.length || mode === "flat") {
+    S.folders = []; S.folderOf = S.order.map(() => 0); S.active = 0;
+    if (S.cursor) S.cursor.folder = 0;
+  }
+  if (mode === "board") toast("Those photos are back on the board. Pick a spot in the strip, then place them.");
+  save(); render();
+}
+
+// Export folders are numbered by where they start in the timeline, not by when they were created.
+// Folders sit on the timeline in folder-bar order; export numbers skip empty ones.
+function folderDirName(i) {
+  let rank = 0;
+  for (let f = 0; f < i; f++) if (S.folderOf.includes(f)) rank++;
+  // same clean-up as the export does (rollmerge.py safe_name_part), so the Review tab shows the real folder name
+  const name = S.folders[i].name.replace(/[\\/:*?"<>|\x00-\x1f]/g, "").replace(/^[ .\t]+|[ .\t]+$/g, "");
+  return `${String(rank + 1).padStart(2, "0")} ${name}`.slice(0, 80).replace(/[ .\t]+$/, "");
+}
+
+let saveTimer = null;
+function flushSave() { if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; return writeState(); } }
+function save() {
+  normalize();
+  // A change made anywhere but the Review tab moves the Review tab's "revert" starting point
+  const sig = stateSig();
+  if (sig !== S.lastSig) { if (view !== "review") S.reviewBase = null; S.lastSig = sig; }
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(writeState, 250);
+}
+function writeState(keepalive) {
+  saveTimer = null;
+  {
+    const state = {
+      version: 2,
+      lanes: S.lanes.map(l => ({name: l.name, rolls: l.rolls.map(r => ({key: S.rolls[r].key, count: S.rolls[r].count}))})),
+      order: S.order, folderOf: S.folderOf, folders: S.folders, active: S.active, cursor: S.cursor || null,
+      banished: S.banished, reviewBase: S.reviewBase || null,
+      history: S.history.slice(-30),
+      outdir: S.outdir, date: S.date, prefix: S.prefix, nameMode: S.nameMode,
+    };
+    if (keepalive) {
+      return fetch("/api/state", {method: "POST", keepalive: true, headers: {"X-Token": TOKEN, "Content-Type": "application/json"},
+                                  body: JSON.stringify({root: S.root, state})}).catch(() => {});
+    }
+    return api("/api/state", {root: S.root, state}).catch(e => toast("Couldn't save progress: " + e.message));
+  }
+}
+window.addEventListener("pagehide", () => { if (S && saveTimer) { clearTimeout(saveTimer); writeState(true); } });
+
+function defaultLanes() {
+  return [{name: "Camera 1", rolls: S.rolls.map((_, i) => i)}, {name: "Camera 2", rolls: []}];
+}
+
+function validOrder(order) {
+  if (!Array.isArray(order)) return false;
+  const {laneOf} = derive();
+  const seen = new Set();
+  for (const id of order) {
+    if (!Number.isInteger(id) || !laneOf.has(id) || seen.has(id)) return false;
+    seen.add(id);
+  }
+  return true;
+}
+
+function cleanBanished(list, inOrder) {
+  const {laneOf} = derive();
+  const seen = new Set();
+  return (Array.isArray(list) ? list : []).filter(id => Number.isInteger(id) && laneOf.has(id) && !inOrder.has(id) && !seen.has(id) && seen.add(id));
+}
+
+// A saved undo step (or revert point) is only used if it still fits this folder.
+function cleanSnap(h) {
+  if (!h || !validOrder(h.order) || !Array.isArray(h.folderOf) || h.folderOf.length !== h.order.length || !Array.isArray(h.folders)) return null;
+  const folders = h.folders.map(f => ({name: String((f && f.name) || "Folder")}));
+  return {order: h.order, folderOf: h.folderOf.map(f => Number.isInteger(f) && f >= 0 && f < Math.max(1, folders.length) ? f : 0),
+          folders, active: Math.min(Math.max(0, h.active | 0), Math.max(0, folders.length - 1)), cursor: h.cursor || null,
+          banished: cleanBanished(h.banished, new Set(h.order))};
+}
+
+function restore(saved) {
+  // Rebuild the saved setup, but only trust saved progress if the rolls are unchanged.
+  const byKey = new Map(S.rolls.map((r, i) => [r.key, i]));
+  let intact = true;
+  const used = new Set();
+  const lanes = (saved.lanes || []).map(l => ({
+    name: l.name || "Camera",
+    rolls: (l.rolls || []).map(x => {
+      const i = byKey.get(x.key);
+      if (i === undefined || S.rolls[i].count !== x.count || used.has(i)) { intact = false; return null; }
+      used.add(i); return i;
+    }).filter(i => i !== null),
+  })).slice(0, MAX_CAMERAS);
+  if (!lanes.length) return false;
+  const missing = S.rolls.map((_, i) => i).filter(i => !used.has(i));
+  if (missing.length) { intact = false; lanes[0].rolls.push(...missing); }
+  S.lanes = lanes;
+  S.outdir = saved.outdir || S.outdir;
+  S.date = saved.date || S.date;
+  S.prefix = saved.prefix || "";
+  S.nameMode = saved.nameMode || "keep";
+  S.folders = Array.isArray(saved.folders) ? saved.folders.filter(f => f && f.name).map(f => ({name: String(f.name)})) : [];
+  S.active = Math.min(Math.max(0, saved.active | 0), Math.max(0, S.folders.length - 1));
+  const hadProgress = (saved.order || saved.seq || []).length > 0;
+  if (!intact) {
+    if (hadProgress) toast("The rolls in this folder changed since last time, so merging starts over.");
+    return true;
+  }
+  let order = saved.order;
+  if (!order && Array.isArray(saved.seq)) {  // progress saved by version 1
+    const frames = lanes.map((_, l) => laneFrames(l)); const pos = lanes.map(() => 0);
+    order = [];
+    for (const l of saved.seq) { if (frames[l] && pos[l] < frames[l].length) order.push(frames[l][pos[l]++]); }
+  }
+  if (validOrder(order || [])) {
+    S.order = order || [];
+    const fo = Array.isArray(saved.folderOf) && saved.folderOf.length === S.order.length ? saved.folderOf : S.order.map(() => 0);
+    S.folderOf = fo.map(f => (Number.isInteger(f) && f >= 0 && f < S.folders.length) ? f : 0);
+    normalize();  // repairs progress saved before folders were kept in one piece
+    const c = saved.cursor;
+    S.cursor = c && Number.isInteger(c.pos) && c.pos >= 0 && c.pos <= S.order.length ? {pos: c.pos, folder: Math.min(c.folder | 0, Math.max(0, S.folders.length - 1))} : null;
+    S.banished = cleanBanished(saved.banished, new Set(S.order));
+    S.history = (saved.history || []).map(cleanSnap).filter(Boolean);
+    S.reviewBase = cleanSnap(saved.reviewBase);
+  }
+  return true;
+}
+
+// ---------------------------------------------------------------- actions
+async function chooseFolder() {
+  homeError = "";
+  try {
+    const r = await api("/api/pick-folder", {prompt: "Choose the folder the lab sent"});
+    if (r.unavailable) { homeError = "The folder picker isn't available here. Paste the folder's location below instead."; render(); return; }
+    if (r.path) await openFolder(r.path);
+  } catch (e) { homeError = e.message; render(); }
+}
+
+async function openFolder(path) {
+  homeError = "";
+  if (!path || !path.trim()) { homeError = "Paste a folder location first."; render(); return; }
+  try {
+    if (S) await flushSave();
+    const d = await api("/api/open", {path});
+    if (!d.rolls.length) { homeError = `No JPG or TIFF photos were found in “${d.rootName}”.`; render(); return; }
+    S = {
+      root: d.root, rootName: d.rootName, gen: d.gen, rolls: d.rolls, names: d.names,
+      lanes: null, order: [], folderOf: [], folders: [], active: 0, history: [], cursor: null,
+      banished: [], reviewBase: null, mode: null,
+      outdir: d.defaultOutdir, date: d.today, prefix: "", nameMode: "keep",
+    };
+    exportJob = null;
+    const restored = d.saved && restore(d.saved);
+    if (!restored) S.lanes = defaultLanes();
+    S.setupSig = setupSig();
+    S.lastSig = stateSig();
+    const {merged, total} = derive();
+    view = merged.length === total && total > 0 ? "review" : merged.length ? "merge" : "setup";
+    S.lastView = view;
+    save(); render();
+  } catch (e) { homeError = e.message; render(); }
+}
+
+function setupSig() { return JSON.stringify(S.lanes.map(l => l.rolls)); }
+
+function changeSetup(fn) {
+  if (S.order.length && !confirm(`You've already placed ${plural(S.order.length, "photo")}. Changing the rolls will restart the merge. Continue?`)) return;
+  fn();
+  S.order = []; S.folderOf = []; S.history = []; S.cursor = null; S.reviewBase = null;  // folders and banished photos are kept
+  save(); render();
+}
+
+function goTo(v) {
+  if (v !== "home" && !S) return;
+  if (v === "merge") {  // cameras without rolls have nothing to sort
+    const keep = S.lanes.map((l, i) => l.rolls.length ? i : -1).filter(i => i >= 0);
+    if (!keep.length) return;
+    if (keep.length !== S.lanes.length) { S.lanes = keep.map(i => S.lanes[i]); save(); }
+  }
+  if (S) { flushSave(); if (v !== "home") S.lastView = v; }
+  overlay = null; S && (S.addingFolder = false, S.renaming = undefined, S.mode = null);
+  view = v; window.scrollTo(0, 0); render();
+}
+
+async function doExport() {
+  const {merged, total} = derive();
+  const partial = merged.length !== total;
+  if (!merged.length || (partial && !S.partialExport)) return;
+  const order = merged.map(m => ({id: m.id, lane: S.lanes[m.lane].name, roll: S.rolls[rollOf(m.id)].name,
+                                  folder: S.folders.length ? folderDirName(m.folder) : ""}));
+  try {
+    const r = await api("/api/export", {gen: S.gen, order, outdir: S.outdir, date: S.date, prefix: S.nameMode === "custom" ? S.prefix : "", partial, banished: S.banished});
+    exportJob = {id: r.job, done: 0, total: order.length, finished: false, leftOut: total - order.length};
+    render(); pollJob();
+  } catch (e) { exportJob = {error: e.message, finished: true}; render(); }
+}
+
+async function pollJob() {
+  if (!exportJob || exportJob.finished) return;
+  try { Object.assign(exportJob, await api(`/api/job?id=${exportJob.id}`)); }
+  catch (e) { exportJob.error = e.message; exportJob.finished = true; }
+  renderExportStatus();
+  if (!exportJob.finished) setTimeout(pollJob, 300);
+}
+
+// The background program has gone away (window closed, computer slept, etc.). Nothing can be
+// saved and no previews can load, so stop here clearly instead of letting work pile up unsaved.
+function showStopped(oldTab) {
+  if (stopped) return;
+  stopped = true; overlay = null; clearTimeout(saveTimer); saveTimer = null;
+  document.querySelectorAll(".toast").forEach(t => t.remove());
+  app.innerHTML = `<div class="stopped"><div>${LOGO.replace("<svg", '<svg width="40" height="40"')}
+    <p class="stopped-title">${oldTab ? "This tab is from an earlier session of Roll Merge." : "Roll Merge has stopped running."}</p>
+    <p>${oldTab ? "Roll Merge has been started again since this tab was opened, so it can't save from here."
+                : "It may have been closed, or the computer went to sleep. Your progress up to the last change was saved."}</p>
+    <p>${oldTab ? "Close this tab and use the newer Roll Merge tab instead. If you can't find it, double-click <b>Start Roll Merge</b> again."
+                : "Close this tab, then double-click <b>Start Roll Merge</b> again."} You'll carry on from where you were.</p></div></div>`;
+  renderOverlay();
+}
+
+async function quitApp() {
+  if (S) await flushSave();
+  quitting = true;
+  try { await api("/api/quit", {}); } catch (e) {}
+  app.innerHTML = `<div class="stopped"><div>${LOGO.replace("<svg", '<svg width="40" height="40"')}<p>Roll Merge has stopped. You can close this tab.</p></div></div>`;
+}
+
+// ---------------------------------------------------------------- views
+const TABS = [["home", "Folder"], ["setup", "Rolls"], ["merge", "Sort"], ["review", "Review & export"]];
+
+function progressHtml() {
+  const {merged, total} = derive();
+  const pct = total ? Math.round(merged.length / total * 100) : 0;
+  return `<div class="progress" title="Photos placed"><div class="track"><div class="fill" style="width:${pct}%"></div></div>${merged.length} / ${total}</div>`;
+}
+
+function topBar(extra) {
+  const tabs = TABS.map(([v, label], i) => `<button class="tab ${view === v ? "on" : ""}" data-act="tab" data-view="${v}" ${!S && v !== "home" ? "disabled" : ""}><span class="tn">${i + 1}</span>${label}</button>`).join("");
+  return `<div class="bar">
+    <div class="brand">${LOGO}<span>Roll Merge</span></div>
+    <nav class="tabs">${tabs}</nav>
+    ${S ? `<span class="crumb" title="${esc(S.root)}">${esc(S.rootName)}</span>` : ""}
+    <span class="spacer"></span>
+    ${extra || ""}
+    <button class="ghost small" data-act="quit" title="Stop Roll Merge">Quit</button>
+  </div>`;
+}
+
+function renderHome(recent) {
+  app.innerHTML = topBar() + `
+  <main class="home">
+    ${S ? (() => { const {merged, total} = derive(); const back = TABS.find(t => t[0] === (S.lastView || "setup")) || TABS[1];
+      return `<div class="current"><div class="what"><b>${esc(S.rootName)}</b> is open · ${merged.length} of ${total} placed<small>${esc(S.root)}</small></div>
+        <button class="primary" data-act="tab" data-view="${back[0]}">Back to ${back[1]} →</button></div>`; })() : ""}
+    <h1>Put a wedding's film scans back in the order they were shot.</h1>
+    <p class="lead">Choose the folder the lab sent: the one that holds a folder for each roll. Your original files are never changed.</p>
+    <button class="primary pick" data-act="choose">Choose folder…</button>
+    <div class="or">or paste the folder's location</div>
+    <form class="pathrow" data-act="openpath">
+      <input type="text" id="pathInput" placeholder="e.g. /Users/you/Pictures/Smith Wedding" autocomplete="off" spellcheck="false">
+      <button type="submit">Open</button>
+    </form>
+    <div class="tip">Mac: right-click the folder in Finder, hold <kbd>Option</kbd>, choose “Copy … as Pathname”. Windows: Shift + right-click, “Copy as path”.</div>
+    ${homeError ? `<div class="err">${esc(homeError)}</div>` : ""}
+    ${recent && recent.length ? `<div class="recent"><h3>Pick up where you left off</h3>${recent.map(r => `
+      <button data-act="recent" data-path="${esc(r.root)}" ${S && r.root === S.root ? "hidden" : ""}>
+        <span><b>${esc(r.name)}</b><div class="path">${esc(r.root)}</div></span>
+        <span class="muted">${r.total ? (r.placed >= r.total ? "done" : `${r.placed} / ${r.total}`) : ""}</span>
+      </button>`).join("")}</div>` : ""}
+  </main>`;
+}
+
+function renderSetup() {
+  const totalPhotos = S.rolls.reduce((a, r) => a + r.count, 0);
+  const cams = S.lanes.map((lane, l) => {
+    const c = LANE_COLORS[l];
+    const count = lane.rolls.reduce((a, r) => a + S.rolls[r].count, 0);
+    const rolls = lane.rolls.map((r, i) => {
+      const roll = S.rolls[r];
+      const ids = range(roll.start, roll.count);
+      const moves = S.lanes.map((other, o) => o === l ? "" :
+        `<button class="small" data-act="move" data-roll="${r}" data-to="${o}">${o < l ? "← " : ""}<span class="tname">${esc(other.name)}</span>${o > l ? " →" : ""}</button>`).join("");
+      return `<div class="roll" draggable="true" data-roll="${r}" title="Drag to move or reorder">
+        <div class="strip" title="Scroll with the mouse wheel, or drag the bar underneath. Click a photo to see it large."><div class="strip-in">
+          ${ids.map((id, i) => `<span class="fr" data-act="rollframe" data-roll="${r}" data-i="${i}"><img src="${img(id)}" alt="" loading="lazy" draggable="false"><b>${i + 1}</b></span>`).join("")}
+        </div></div>
+        <div class="meta"><span class="order">${i + 1}</span><span class="name" title="${esc(roll.name)}">${esc(roll.name)}</span><span class="n">${plural(roll.count, "photo")}</span><span class="grip" aria-hidden="true">⋮⋮</span></div>
+        <div class="acts">
+          <button class="small" data-act="up" data-lane="${l}" data-i="${i}" ${i === 0 ? "disabled" : ""} title="Shot earlier">↑</button>
+          <button class="small" data-act="down" data-lane="${l}" data-i="${i}" ${i === lane.rolls.length - 1 ? "disabled" : ""} title="Shot later">↓</button>
+          ${moves}
+        </div>
+      </div>`;
+    }).join("");
+    return `<section class="cam" style="--c:${c}" data-lane="${l}">
+      <div class="cam-head"><span class="dot"></span>
+        <input type="text" value="${esc(lane.name)}" data-act="rename" data-lane="${l}" aria-label="Camera name">
+        <span class="count">${plural(lane.rolls.length, "roll")} · ${count}</span>
+        ${S.lanes.length > 1 && !lane.rolls.length ? `<button class="ghost small" data-act="removecam" data-lane="${l}">Remove</button>` : ""}
+      </div>
+      <div class="rolls">${rolls || `<div class="empty-cam">No rolls yet. Drag rolls here, or use the move buttons.</div>`}</div>
+    </section>`;
+  }).join("");
+  const usable = S.lanes.filter(l => l.rolls.length).length;
+  app.innerHTML = topBar() + `
+  <main class="page">
+    <h2>Which camera shot each roll?</h2>
+    <p class="intro">Found ${plural(S.rolls.length, "roll")} with ${plural(totalPhotos, "photo")}. Put each roll under the camera that shot it, in the order it was shot (number 1 = first roll of the day). Drag rolls to move them between cameras or change their order. Click a roll's photos to look through it. You can rename the cameras, e.g. “F100 flash”.</p>
+    <div class="cams" style="--n:${S.lanes.length}">${cams}</div>
+    ${S.lanes.length < MAX_CAMERAS ? `<button class="addcam" data-act="addcam" title="Click, or drop a roll here to give it a camera of its own">+ Add another camera</button>` : ""}
+  </main>
+  <div class="footbar">
+    <span class="muted">${usable < 2 ? "Tip: with only one camera there's nothing to merge, the rolls just go one after another." : ""}</span>
+    <button class="primary" data-act="start" ${usable ? "" : "disabled"}>${S.order.length ? "Continue merging" : "Start merging"} →</button>
+  </div>`;
+  document.querySelectorAll(".roll .strip").forEach(wheelScrollsSideways);
+}
+
+// Mouse wheel over a sideways strip scrolls the strip (down = later photos), never the page.
+function wheelScrollsSideways(el) {
+  el.addEventListener("wheel", e => {
+    if (e.ctrlKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;  // pinch-zoom, or a trackpad's own sideways swipe
+    e.preventDefault();
+    const unit = e.deltaMode === 1 ? 40 : e.deltaMode === 2 ? el.clientWidth : 1;  // lines / pages / pixels
+    el.scrollLeft += e.deltaY * unit;
+  }, {passive: false});
+}
+
+function laneKeyHint(l) {
+  if (S.lanes.length === 2) return l === 0 ? `<kbd>←</kbd> or <kbd>1</kbd>` : `<kbd>→</kbd> or <kbd>2</kbd>`;
+  return `<kbd>${l + 1}</kbd>`;
+}
+
+function folderBar(merged) {
+  const addCtl = S.addingFolder
+    ? `<form class="chipform" data-act="addfolderform"><input type="text" id="newFolder" placeholder="Folder name, then Enter" autocomplete="off"></form>`
+    : `<button class="chip" data-act="addfolder">+ Folder</button>`;
+  if (!S.folders.length) {
+    return `<div class="folders"><span class="flabel">Folders</span>
+      <button class="chip" data-act="preset">+ Pre-Ceremony · The-Ceremony · Reception</button>${addCtl}
+      <span class="fhint">Optional: split the photos into folders as you go.</span></div>`;
+  }
+  const counts = S.folders.map(() => 0);
+  merged.forEach(m => { counts[m.folder]++; });
+  const chips = S.folders.map((f, i) => S.renaming === i
+    ? `<form class="chipform" data-act="renameform" data-folder="${i}"><input type="text" id="renameFolder" value="${esc(f.name)}" autocomplete="off"></form>`
+    : `<div class="chip ${i === insertPoint().folder ? "active" : ""}" draggable="true" data-act="jumpfolder" data-folder="${i}" data-dropfolder="${i}" title="Click: show this folder in the strip. Drag to change the folder order. Drop a photo here to move it into this folder.">
+        <span class="cname">${esc(f.name)}</span><span class="fcount">${counts[i]}</span>
+        ${i === insertPoint().folder ? "" : `<button class="fsort" data-act="setactive" data-folder="${i}" title="New photos go into this folder, after its last photo">▼ Sort here</button>`}
+        <button class="fx" data-act="renamefolder" data-folder="${i}" title="Rename">✎</button><button class="fx" data-act="delfolder" data-folder="${i}" title="Delete folder">✕</button>
+      </div>`).join("");
+  return `<div class="folders"><span class="flabel">Folders</span>${chips}${addCtl}
+    <span class="fhint">New photos go into <b>${esc(S.folders[insertPoint().folder].name)}</b>. Click a folder to see it, drag to reorder.</span></div>`;
+}
+
+function atEnd(row) { return row.scrollLeft >= row.scrollWidth - row.clientWidth - 4; }
+
+function fitLabels(row) {
+  const divs = [...row.querySelectorAll(".tl-div")];
+  // an empty folder has no photos to sit above, so make room for its whole name
+  divs.forEach(d => { if (d.classList.contains("empty") && d.firstElementChild && !d.style.marginRight) d.style.marginRight = (d.firstElementChild.scrollWidth + 2) + "px"; });
+  divs.forEach((d, i) => {
+    const span = d.firstElementChild;
+    if (!span) return;
+    const end = i + 1 < divs.length ? divs[i + 1].offsetLeft - 10 : row.scrollWidth;
+    const room = Math.max(36, end - d.offsetLeft);
+    span.style.maxWidth = room + "px";
+    const shift = Math.min(Math.max(0, row.scrollLeft - d.offsetLeft), Math.max(0, room - span.offsetWidth));
+    span.style.transform = shift ? `translateX(${shift}px)` : "";
+  });
+}
+
+function applyPin(row, smooth) {
+  if (row._pin === "end") row.scrollLeft = row.scrollWidth;
+  else if (row._pin === "cursor") {
+    const c = row.querySelector(".tl-gap.cursor");
+    if (c) row.scrollLeft = c.offsetLeft - row.clientWidth / 2;
+  } else if (row._pin === "folder") {
+    const d = row.querySelector(`.tl-div[data-folder="${row._folder}"]`);
+    if (d) row.scrollTo({left: Math.max(0, d.offsetLeft - 8), behavior: smooth ? "smooth" : "auto"});
+  }
+}
+
+function renderMerge() {
+  const {next, merged, total} = derive();
+  const pct = total ? Math.round(merged.length / total * 100) : 0;
+  const rollStarts = new Set(S.rolls.map(r => r.start));
+  const rollEnds = new Set(S.rolls.map(r => r.start + r.count - 1));
+  const frameLabel = id => { const r = S.rolls[rollOf(id)]; return `frame ${id - r.start + 1}/${r.count}`; };
+  const qtag = id => {
+    const st = rollStarts.has(id), en = rollEnds.has(id);
+    if (st && en) return `<span class="qtag both">Start · End</span><span class="rs"></span><span class="re"></span>`;
+    if (st) return `<span class="qtag start">▶ Start</span><span class="rs"></span>`;
+    if (en) return `<span class="qtag end">End ■</span><span class="re"></span>`;
+    return "";
+  };
+  const active = S.lanes.map((_, l) => l).filter(l => next[l].length);
+  const oldRow = document.querySelector(".tl-row");
+  const prevScroll = oldRow ? oldRow.scrollLeft : undefined;
+  const wasAtEnd = oldRow ? oldRow.scrollLeft >= oldRow.scrollWidth - oldRow.clientWidth - 4 : true;
+
+  const ip = insertPoint();
+  const cur = ip.pos !== merged.length ? ip : null;  // only shown in the banner when it isn't simply "at the end"
+  const gap = (pos, folder) => {
+    // the green bar marks where the next photo goes
+    const on = ip.pos === pos && (!S.folders.length || ip.folder === folder);
+    const where = S.folders.length ? ` in “${S.folders[folder].name}”` : "";
+    return `<div class="tl-gap ${on ? "cursor" : ""}" data-act="setcursor" data-pos="${pos}" data-folder="${folder}" title="${on ? "New photos go here" : `Place new photos here${where}`}"></div>`;
+  };
+  const item = (m, k) => `<div class="tl-item ${S.flashIds && S.flashIds.has(m.id) ? "flash" : ""}" style="--c:${LANE_COLORS[m.lane]}" draggable="true" data-act="viewmerged" data-k="${k}" title="#${k + 1} ${esc(S.names[m.id])}. Click to enlarge, drag to move.">
+      <img src="${img(m.id, "t")}" alt="" loading="lazy" draggable="false"><span class="num">${k + 1}</span></div>`;
+  let tl = "";
+  if (S.folders.length) {
+    // one block per folder, in folder-bar order, including empty folders so they can be filled in place
+    S.folders.forEach((f, fi) => {
+      const [a, b] = blockRange(fi);
+      tl += `<div class="tl-div ${a === b ? "empty" : ""}" data-folder="${fi}" title="Folder: ${esc(f.name)}"><span>${esc(f.name)}</span></div>`;
+      for (let k = a; k < b; k++) tl += gap(k, fi) + item(merged[k], k);
+      tl += gap(b, fi);
+    });
+  } else {
+    merged.forEach((m, k) => { tl += gap(k, 0) + item(m, k); });
+    tl += gap(merged.length, 0);
+  }
+  if (!merged.length && !S.folders.length) tl = `<div class="tl-empty">Nothing placed yet. Start with whichever photo was taken first, usually the first frame of one of the cameras.</div>`;
+
+  let body;
+  if (!active.length) {
+    body = `<div class="finale"><div class="card">
+      <h3>All ${plural(total, "photo")} are in order</h3>
+      <p>Have a quick look through the full timeline, then export the sorted copies.</p>
+      <button class="primary" data-act="review">Review &amp; export →</button>
+    </div></div>`;
+  } else if (active.length === 1) {
+    const l = active[0]; const rest = next[l];
+    body = `<div class="finale"><div class="card" style="--c:${LANE_COLORS[l]}">
+      <h3>Only ${esc(S.lanes[l].name)} has photos left</h3>
+      <p>The other ${S.lanes.length === 2 ? "camera is" : "cameras are"} finished, so ${rest.length === 1 ? "this last photo goes" : `these ${rest.length} go`} ${cur ? (cur.pos === 0 ? "at the very start" : `in after #${cur.pos}`) : "at the end"}${S.folders.length ? ` (into “${esc(S.folders[ip.folder].name)}”)` : ""}. You can change where by clicking a gap in the strip above.</p>
+      <div class="strip">${rest.slice(0, 8).map(id => `<img src="${img(id)}" alt="" data-act="finaleimg" data-id="${id}">`).join("")}${rest.length > 8 ? `<span class="muted">+${rest.length - 8}</span>` : ""}</div>
+      <button class="primary" data-act="take" data-lane="${l}" data-n="${rest.length}">Place ${rest.length === 1 ? "it" : `all ${rest.length}`} <kbd>Enter</kbd></button>
+    </div></div>`;
+  } else {
+    const lanes = S.lanes.map((lane, l) => {
+      const c = LANE_COLORS[l];
+      const left = next[l].length;
+      if (!left) return `<section class="lane done" style="--c:${c}"><div>${esc(lane.name)}: all placed ✓</div></section>`;
+      const upcoming = next[l].slice(0, 7);
+      const first = upcoming[0];
+      const rname = esc(S.rolls[rollOf(first)].name);
+      const isStart = rollStarts.has(first), isEnd = rollEnds.has(first);
+      const startBadge = (isStart || isEnd) ? `<div class="rollflags">
+          ${isStart ? `<span class="rollflag start">▶ Start of new roll<small>roll ${rname}</small></span>` : ""}
+          ${isEnd ? `<span class="rollflag end">Last photo of roll ■<small>roll ${rname} ends here</small></span>` : ""}
+        </div>${isStart ? `<span class="edge start"></span>` : ""}${isEnd ? `<span class="edge end"></span>` : ""}` : "";
+      return `<section class="lane" style="--c:${c}" data-lane="${l}">
+        <div class="lane-head"><span class="dot"></span><span class="name">${esc(lane.name)}</span><span class="left">· ${left} left</span><span class="spacer"></span>${laneKeyHint(l)}</div>
+        <button class="next" data-act="take" data-lane="${l}" data-n="1" data-run="1" data-id="${first}" draggable="true" title="${esc(S.names[first])}. Click to place next, or drag it to an exact spot in the strip.">
+          <img src="${img(first, "p")}" alt="" draggable="false">
+          ${startBadge}
+          <span class="fname">${esc(shortName(S.names[first]))} · ${frameLabel(first)}</span>
+          <span class="cta">${S.mode === "banish" ? "Click to banish" : "This came next"}</span>
+          <span class="zoom" data-act="zoomlane" data-lane="${l}" role="button" aria-label="Enlarge" title="Enlarge">${ZOOM_ICON}</span>
+        </button>
+        <div class="upnext">${upcoming.slice(1).map((id, i) => `
+          <button data-act="take" data-lane="${l}" data-n="${i + 2}" data-run="${i + 2}" data-id="${id}" draggable="true" title="Click: place ${i + 2} photos from ${esc(lane.name)} (up to this one). Drag: put just this one at an exact spot in the strip.">
+            <img src="${img(id)}" alt="" draggable="false">${qtag(id)}<span class="plus">+${i + 2}</span>
+          </button>`).join("")}</div>
+      </section>`;
+    }).join("");
+    body = `<div class="lanes" style="grid-template-columns:repeat(${S.lanes.length},minmax(0,1fr))">${lanes}</div>
+      <div class="hint">Which photo came next? Click it${S.lanes.length === 2 ? " or press <kbd>←</kbd> / <kbd>→</kbd>" : " or press its number"}. Click a small one to place a whole run at once. Drag photos in the top strip to fix their order. <kbd>Z</kbd> undoes.</div>`;
+  }
+
+  app.innerHTML = topBar(`${progressHtml()}
+    <button class="small" data-act="undo" ${S.history.length ? "" : "disabled"} title="Undo (Z)">↶ Undo</button>`) + `
+  <div class="merge ${S.mode ? "mode-" + S.mode : ""}">
+    <div class="timeline">
+      ${folderBar(merged)}
+      <div class="label">${S.mode === "remove"
+        ? `<span class="modebar remove" style="--c:var(--remove)"><span><b>Remove mode is on.</b> Click any photo in the strip to send it back down to the board.</span><button class="small" data-act="modeoff">Back to normal <kbd>Esc</kbd></button></span>`
+        : S.mode === "banish"
+        ? `<span class="modebar banish" style="--c:var(--banish)"><span><b>Banish mode is on.</b> Click any photo, in the strip or on the board, to take it out of the sort. Recover it any time from “Banished”.</span><button class="small" data-act="modeoff">Back to normal <kbd>Esc</kbd></button></span>`
+        : cur
+        ? `<span class="insertbar">New photos go in ${cur.pos === 0 ? "at the very start" : `after #${cur.pos}`}${S.folders.length ? `, into “${esc(S.folders[cur.folder].name)}”` : ""}<button class="small" data-act="clearcursor">Back to the end <kbd>Esc</kbd></button></span>`
+        : `<span>The green bar shows where the next photo goes. Click any gap to move it there. Drag photos to reorder, or onto the board below to un-place.</span>`}
+        <span class="tools">
+          <label class="modebox remove ${S.mode === "remove" ? "on" : ""}" style="--c:var(--remove)" title="While ticked, clicking a photo in the strip sends it back to the board"><input type="checkbox" data-act="mode" data-mode="remove" ${S.mode === "remove" ? "checked" : ""}>Remove from timeline</label>
+          <label class="modebox banish ${S.mode === "banish" ? "on" : ""}" style="--c:var(--banish)" title="While ticked, clicking a photo takes it out of the sort (it isn't exported). Nothing is deleted."><input type="checkbox" data-act="mode" data-mode="banish" ${S.mode === "banish" ? "checked" : ""}>Banish from sorting</label>
+          <button class="small" data-act="showbanished" ${S.banished.length ? "" : "disabled"} title="See banished photos and recover them">⊘ Banished (${S.banished.length})</button>
+          ${merged.length ? `<span>${merged.length} placed</span>` : ""}
+        </span></div>
+      <div class="tl-row">${tl}</div>
+    </div>
+    ${body}
+  </div>`;
+  S.flashIds = null;
+
+  const row = document.querySelector(".tl-row");
+  if (row) {
+    const first = prevScroll === undefined;
+    let pin = null;
+    if (S.scrollToFolder !== undefined) pin = "folder";
+    else if (cur && (S.scrollToCursor || first)) pin = "cursor";
+    else if (!cur && (S.scrollToEnd || first || (wasAtEnd && !S.keepScroll))) pin = "end";
+    row._pin = pin; row._folder = S.scrollToFolder;
+    row.scrollLeft = prevScroll || 0;
+    applyPin(row, pin === "folder");
+    fitLabels(row);
+    // big previews change width as they load: re-apply the pin so the view doesn't drift
+    row.querySelectorAll("img").forEach(im => { if (!im.complete) im.addEventListener("load", () => { applyPin(row, false); fitLabels(row); }); });
+    row.addEventListener("scroll", () => fitLabels(row), {passive: true});
+    // as soon as the person scrolls by hand, stop pinning (until they scroll back to the end)
+    const release = () => { row._pin = null; };
+    row.addEventListener("wheel", release, {passive: true});
+    wheelScrollsSideways(row);
+    row.addEventListener("pointerdown", release);
+    row.addEventListener("scroll", () => { if (!row._pin && atEnd(row) && !S.cursor) row._pin = "end"; }, {passive: true});
+  }
+  S.scrollToEnd = false; S.scrollToCursor = false; S.scrollToFolder = undefined; S.keepScroll = false;
+  const input = document.getElementById("newFolder") || document.getElementById("renameFolder");
+  if (input) { input.focus(); input.select(); }
+
+  // preload what's coming
+  for (const l of active) for (const id of next[l].slice(1, 3)) { const im = new Image(); im.src = img(id, "p"); }
+}
+
+function renderReview() {
+  if (!S.reviewBase) S.reviewBase = stateCopy();  // arriving from the Sort tab: this is what "revert" goes back to
+  const changed = sigOf(S.reviewBase) !== stateSig();
+  const {merged, total} = derive();
+  const complete = merged.length === total;
+  const example = exampleName(merged);
+  const cell = (m, k) => `
+    <button class="cell ${S.flashIds && S.flashIds.has(m.id) ? "flash" : ""}" style="--c:${LANE_COLORS[m.lane]}" draggable="true" data-act="viewmerged" data-k="${k}" title="#${k + 1} ${esc(S.names[m.id])}. Click to enlarge, drag to move.">
+      <img src="${img(m.id)}" alt="" loading="lazy" draggable="false"><span class="num">${k + 1}</span>
+    </button>`;
+  const gname = f => S.renaming === f
+    ? `<form class="chipform" data-act="renameform" data-folder="${f}"><input type="text" id="renameFolder" value="${esc(S.folders[f].name)}" autocomplete="off"></form>`
+    : `<button class="gname" data-act="renamefolder" data-folder="${f}" title="Rename this folder">${esc(S.folders[f].name)}<span class="pen">✎</span></button>`;
+  let cells;
+  if (S.folders.length) {
+    // one section per run of photos in the same folder
+    const runs = [];
+    merged.forEach((m, k) => {
+      if (!runs.length || runs[runs.length - 1].folder !== m.folder) runs.push({folder: m.folder, items: []});
+      runs[runs.length - 1].items.push([m, k]);
+    });
+    cells = runs.map(r => `<div class="ghead" data-folder="${r.folder}">${gname(r.folder)}<span class="n">${plural(r.items.length, "photo")}</span><span class="path">${esc(folderDirName(r.folder))}/</span></div>
+      <div class="grid" data-folder="${r.folder}">${r.items.map(([m, k]) => cell(m, k)).join("")}</div>`).join("");
+  } else {
+    cells = `<div class="grid" data-folder="0">${merged.map(cell).join("")}</div>`;
+  }
+  app.innerHTML = topBar(`${progressHtml()}
+    <button class="small" data-act="undo" ${S.history.length ? "" : "disabled"} title="Undo (Z)">↶ Undo</button>`) + `
+  <main class="page">
+    <div class="review-top">
+      <div>
+        <h2>${complete ? "Check the order" : `${merged.length} of ${total} placed so far`}</h2>
+        <p class="intro">Scroll through to make sure it flows. To fix one, drag it to where it belongs, even under a different folder. ${S.folders.length ? "Click a folder's name to rename it. " : ""}For bigger fixes, click the last photo that's still right and choose “Rewind to here”.</p>
+        <div class="revrow"><button class="small" data-act="undo" ${S.history.length ? "" : "disabled"}>↶ Undo <kbd>Z</kbd></button>
+          <button class="small" data-act="revertreview" ${changed ? "" : "disabled"}>⟲ Revert all changes made on this screen</button>
+          <span>${changed ? "Revert puts everything back the way it was when you came here from the Sort tab." : "No changes made on this screen yet."}</span></div>
+        ${S.banished.length ? `<div class="revrow"><span>⊘ ${plural(S.banished.length, "banished photo")} won't be exported.</span><button class="small" data-act="showbanished">See them</button></div>` : ""}
+        <div class="legend">${S.lanes.map((l, i) => `<span><span class="dot" style="--c:${LANE_COLORS[i]}"></span>${esc(l.name)}</span>`).join("")}</div>
+        ${cells}
+      </div>
+      <aside class="export">
+        <h3>Export sorted copies</h3>
+        <div class="field"><label for="outdir">Save to a new folder</label>
+          <div class="pathrow"><input type="text" id="outdir" data-act="outdir" value="${esc(S.outdir)}" spellcheck="false"><button class="small" data-act="pickout">Change…</button></div>
+          <small>Your originals stay exactly where they are.</small></div>
+        <div class="field"><label for="wdate">Wedding date</label>
+          <input type="date" id="wdate" data-act="date" value="${esc(S.date)}">
+          <small>Each copy gets a capture time 10 seconds after the last, so Lightroom and other apps sort them correctly. The times are made up; only the order is real.</small></div>
+        <div class="field"><label>File names</label>
+          <label class="radio"><input type="radio" name="nm" value="keep" data-act="namemode" ${S.nameMode !== "custom" ? "checked" : ""}> Number + lab's original name</label>
+          <label class="radio"><input type="radio" name="nm" value="custom" data-act="namemode" ${S.nameMode === "custom" ? "checked" : ""}> Number + my own name</label>
+          <input type="text" id="prefix" data-act="prefix" placeholder="e.g. Smith Wedding" value="${esc(S.prefix)}" class="${S.nameMode === "custom" ? "" : "hidden"}" style="margin-top:6px">
+          <div class="example" id="example">${esc(example)}</div></div>
+        ${complete ? "" : `<label class="radio check"><input type="checkbox" data-act="partial" ${S.partialExport ? "checked" : ""}>
+          <span>Export without the ${plural(total - merged.length, "photo")} still on the board<small>For scrap frames you don't want. They're simply left out; nothing is deleted.</small></span></label>`}
+        <button class="primary bigbtn" data-act="export" ${complete || (S.partialExport && merged.length) ? "" : "disabled"}>${complete ? `Export ${total} copies`
+          : S.partialExport ? (merged.length ? `Export ${merged.length} copies, leave out ${total - merged.length}` : "Place at least one photo first")
+          : "Place every photo first"}</button>
+        <div id="jobStatus"></div>
+      </aside>
+    </div>
+  </main>`;
+  renderExportStatus();
+  S.flashIds = null;
+  const input = document.getElementById("renameFolder");
+  if (input) { input.focus(); input.select(); }
+}
+
+function renderExportStatus() {
+  const el = document.getElementById("jobStatus");
+  if (!el || !exportJob) return;
+  if (exportJob.error) { el.innerHTML = `<div class="err">${esc(exportJob.error)}</div>`; return; }
+  const pct = exportJob.total ? Math.round(exportJob.done / exportJob.total * 100) : 0;
+  if (!exportJob.finished) {
+    el.innerHTML = `<div class="jobbar"><div style="width:${pct}%"></div></div><div class="muted">Copying ${exportJob.done} of ${exportJob.total}…</div>`;
+    return;
+  }
+  el.innerHTML = `<div class="jobbar"><div style="width:100%"></div></div>
+    <p class="ok">Done: ${plural(exportJob.total, "copy").replace("copys", "copies")} saved.${exportJob.leftOut ? ` ${exportJob.leftOut} left out.` : ""}</p>
+    <div class="muted mono" style="font-size:12px;word-break:break-all">${esc(exportJob.outdir)}</div>
+    ${exportJob.exif_skipped ? `<p class="muted" style="font-size:12px">${exportJob.exif_skipped} non-JPEG file(s) got numbered names but no capture time. Sort by file name to be safe.</p>` : ""}
+    <p><button class="small" data-act="reveal">Open folder</button></p>`;
+}
+
+// ---------------------------------------------------------------- overlays
+function renderOverlay() {
+  document.querySelector(".overlay")?.remove();
+  if (!overlay || stopped) return;
+  const el = document.createElement("div");
+  el.className = "overlay";
+  if (overlay.kind === "choice") {
+    el.innerHTML = `<div class="choice" role="dialog" aria-modal="true">
+      <h3>${esc(overlay.title)}</h3><p>${esc(overlay.text)}</p>
+      ${overlay.options.map((o, i) => `<button class="opt" data-act="choice" data-i="${i}"><b>${esc(o.label)}</b><span>${esc(o.sub || "")}</span></button>`).join("")}
+      <button class="ghost cancel" data-act="closeov">Cancel</button></div>`;
+    document.body.appendChild(el);
+    return;
+  }
+  if (overlay.kind === "banished") {
+    const list = S.banished.slice().reverse();  // most recently banished first
+    el.classList.add("banished-ov");
+    el.innerHTML = `<div class="ov-top"><span class="cap"><b>Banished photos</b> · ${list.length ? `${plural(list.length, "photo")}. Click one to recover it: it goes back on the board, in its camera's lane.` : "none right now"}</span>
+        <button class="small" data-act="undo" ${S.history.length ? "" : "disabled"} title="Undo the last change (Z)">↶ Undo <kbd>Z</kbd></button>
+        ${list.length > 1 ? `<button class="small" data-act="recoverall">Recover all</button>` : ""}
+        <button data-act="closeov">Close <kbd>Esc</kbd></button></div>
+      ${list.length ? `<div class="ov-grid">${list.map(id => `<button data-act="recover" data-id="${id}" title="${esc(S.names[id])}. Click to recover it."><img src="${img(id)}" alt="" loading="lazy"><span class="num">${esc(shortName(S.names[id]))}</span></button>`).join("")}</div>`
+        : `<div class="ov-empty">Nothing is banished. On the Sort tab, tick “Banish from sorting” and click a photo to banish it.</div>`}`;
+    document.body.appendChild(el);
+    return;
+  }
+  if (overlay.kind === "roll") {
+    const roll = S.rolls[overlay.roll];
+    el.innerHTML = `<div class="ov-top"><span class="cap"><b>${esc(roll.name)}</b> · ${plural(roll.count, "photo")} in frame order</span><button data-act="closeov">Close <kbd>Esc</kbd></button></div>
+      <div class="ov-grid">${range(roll.start, roll.count).map((id, i) => `<button data-act="rollphoto" data-i="${i}" title="${esc(S.names[id])}"><img src="${img(id)}" alt="" loading="lazy"><span class="num">${i + 1}</span></button>`).join("")}</div>`;
+  } else {
+    const id = overlay.list[overlay.i];
+    const r = rollOf(id); const l = laneOfRoll(r);
+    el.innerHTML = `<div class="ov-top">
+        <span class="cap">${overlay.title ? esc(overlay.title(overlay.i)) + " · " : ""}${esc(S.lanes[l]?.name || "")} · roll ${esc(S.rolls[r].name)} · <span class="mono">${esc(S.names[id])}</span></span>
+        ${overlay.rewind ? `<button class="small" data-act="rewind">Rewind to here</button>` : ""}
+        <button data-act="closeov">Close <kbd>Esc</kbd></button></div>
+      <div class="ov-body">
+        <button class="ov-nav" data-act="ovprev" ${overlay.i > 0 ? "" : "disabled"} aria-label="Previous">‹</button>
+        <div class="ov-img"><img src="${img(id, "p")}" alt=""></div>
+        <button class="ov-nav" data-act="ovnext" ${overlay.i < overlay.list.length - 1 ? "" : "disabled"} aria-label="Next">›</button>
+      </div>`;
+  }
+  document.body.appendChild(el);
+}
+
+function openPhotos(list, i, opts) { overlay = Object.assign({kind: "photo", list, i}, opts || {}); renderOverlay(); }
+
+// ---------------------------------------------------------------- render + events
+async function render() {
+  if (stopped) return;
+  if (view === "home" || !S) {
+    let recent = [];
+    try { recent = await api("/api/recent"); } catch (e) {}
+    renderHome(recent);
+  }
+  else if (view === "setup") renderSetup();
+  else if (view === "merge") renderMerge();
+  else if (view === "review") renderReview();
+  renderOverlay();
+}
+
+app.addEventListener("click", e => handle(e));
+document.body.addEventListener("click", e => { if (e.target.closest(".overlay")) handle(e); });
+app.addEventListener("submit", e => {
+  e.preventDefault();
+  const act = e.target.dataset.act;
+  if (act === "openpath") openFolder(document.getElementById("pathInput").value);
+  if (act === "addfolderform") {
+    const v = document.getElementById("newFolder").value;
+    if (v.trim()) addFolders([v]); else { S.addingFolder = false; render(); }
+  }
+  if (act === "renameform") renameFolder(+e.target.dataset.folder, document.getElementById("renameFolder").value);
+});
+app.addEventListener("focusout", e => {
+  if (!S) return;
+  if (e.target.id === "newFolder" && S.addingFolder) {
+    const v = e.target.value; S.addingFolder = false;
+    setTimeout(() => { if (v.trim()) addFolders([v]); else render(); }, 0);
+  }
+  if (e.target.id === "renameFolder" && S.renaming !== undefined) {
+    const i = S.renaming, v = e.target.value;
+    setTimeout(() => { if (S.renaming === i) renameFolder(i, v); }, 0);
+  }
+});
+app.addEventListener("keydown", e => {
+  if (e.key === "Escape" && (e.target.id === "newFolder" || e.target.id === "renameFolder")) {
+    S.addingFolder = false; S.renaming = undefined; e.target.value = ""; render();
+  }
+});
+app.addEventListener("input", e => {
+  const t = e.target, act = t.dataset.act;
+  if (!S) return;
+  if (act === "rename") {
+    const l = +t.dataset.lane;
+    S.lanes[l].name = t.value.trim() || `Camera ${l + 1}`;
+    // update labels in place so focus isn't lost by a re-render
+    document.querySelectorAll(`[data-act=move][data-to="${l}"] .tname`).forEach(n => { n.textContent = S.lanes[l].name; });
+    save();
+  }
+  if (act === "outdir") { S.outdir = t.value; save(); }
+  if (act === "date") { S.date = t.value; save(); }
+  if (act === "prefix") { S.prefix = t.value; save(); updateExample(); }
+});
+app.addEventListener("change", e => {
+  const t = e.target;
+  if (t.dataset.act === "partial") { S.partialExport = t.checked; renderReview(); return; }
+  if (t.dataset.act === "mode") { setMode(t.checked ? t.dataset.mode : null); return; }
+  if (t.dataset.act === "namemode") { S.nameMode = t.value; save(); renderReview(); if (t.value === "custom") document.getElementById("prefix").focus(); }
+});
+app.addEventListener("mouseover", e => {
+  const b = e.target.closest("[data-run]");
+  const lane = e.target.closest(".lane");
+  if (!lane) return;
+  const n = b ? +b.dataset.run : 0;
+  lane.querySelectorAll("[data-run]").forEach(x => x.classList.toggle("inrun", n > 1 && +x.dataset.run <= n));
+});
+app.addEventListener("mouseout", e => {
+  const lane = e.target.closest(".lane");
+  if (lane && !lane.contains(e.relatedTarget)) lane.querySelectorAll(".inrun").forEach(x => x.classList.remove("inrun"));
+});
+
+// ---------------------------------------------------------------- drag and drop
+// Setup screen: drag rolls between cameras. Merge screen: drag placed photos to reorder,
+// or onto a folder chip to move them into that folder.
+let drag = null;  // {kind: "roll", roll} | {kind: "photo", k}
+
+function clearDropUI() {
+  document.querySelectorAll(".drop-marker, .tl-marker, .chip-marker, .rv-marker").forEach(x => x.remove());
+  document.querySelectorAll(".tl-gap.dropping").forEach(x => x.classList.remove("dropping"));
+  document.querySelectorAll(".drop-target").forEach(x => x.classList.remove("drop-target"));
+}
+
+function rollDropSpot(e) {
+  const add = e.target.closest(".addcam");
+  if (add) return {add};
+  const cam = e.target.closest(".cam");
+  if (!cam) return null;
+  const list = cam.querySelector(".rolls");
+  const cards = [...list.querySelectorAll(".roll")].filter(c => +c.dataset.roll !== drag.roll);
+  let index = cards.length;
+  for (let i = 0; i < cards.length; i++) {
+    const box = cards[i].getBoundingClientRect();
+    if (e.clientY < box.top + box.height / 2) { index = i; break; }
+  }
+  return {cam, list, lane: +cam.dataset.lane, index, before: cards[index] || null};
+}
+
+function photoDropSpot(e) {
+  const chip = e.target.closest("[data-dropfolder]");
+  if (chip) return {chip, folder: +chip.dataset.dropfolder};
+  const board = e.target.closest(".lanes, .finale");
+  if (board) return {board};
+  const row = e.target.closest(".tl-row");
+  if (!row) return null;
+  // walk photos and folder dividers left to right; the divider passed last says which folder it lands in
+  const parts = [...row.querySelectorAll(".tl-item, .tl-div")].filter(x => !(drag.kind === "photo" && x.classList.contains("tl-item") && +x.dataset.k === drag.k));
+  let index = 0, folder, before = null;
+  for (const el of parts) {
+    const box = el.getBoundingClientRect();
+    if (e.clientX < box.left + box.width / 2) { before = el; break; }
+    if (el.classList.contains("tl-div")) folder = +el.dataset.folder;
+    else index++;
+  }
+  if (S.folders.length && folder === undefined) folder = 0;  // before the first folder's label
+  return {row, index, folder: S.folders.length ? folder : undefined, before};
+}
+
+// Review grid: photos sit in rows that wrap, so find the photo the pointer is in front of.
+// Drop on a folder heading = start of that folder. Positions count photos with the dragged one taken out.
+function reviewDropSpot(e) {
+  const head = e.target.closest(".ghead");
+  const grid = head ? head.nextElementSibling : e.target.closest(".grid");
+  if (!grid || !grid.classList.contains("grid")) return null;
+  const folder = +grid.dataset.folder;
+  let start = 0;
+  S.folderOf.forEach((f, k) => { if (k !== drag.k && f < folder) start++; });
+  const cells = [...grid.querySelectorAll(".cell")].filter(c => +c.dataset.k !== drag.k);
+  let i = cells.length;
+  if (head) i = 0;
+  else for (let j = 0; j < cells.length; j++) {
+    const b = cells[j].getBoundingClientRect();
+    if (e.clientY < b.top || (e.clientY <= b.bottom && e.clientX < b.left + b.width / 2)) { i = j; break; }
+  }
+  return {grid, head, folder: S.folders.length ? folder : undefined, index: start + i, before: cells[i] || null, after: cells[i] ? null : cells[cells.length - 1] || null};
+}
+
+function showReviewMarker(spot) {
+  let m = document.querySelector(".rv-marker");
+  if (!m) { m = document.createElement("div"); m.className = "rv-marker"; document.body.appendChild(m); }
+  const ref = spot.before || spot.after;
+  if (!ref) { const g = spot.grid.getBoundingClientRect(); m.style.cssText = `left:${g.left}px;top:${g.top}px;height:60px`; return; }
+  const b = ref.getBoundingClientRect();
+  m.style.cssText = `left:${(spot.before ? b.left - 7 : b.right + 3)}px;top:${b.top}px;height:${b.height}px`;
+}
+
+function folderDropSpot(e) {
+  const bar = e.target.closest(".folders");
+  if (!bar) return null;
+  const chips = [...bar.querySelectorAll(".chip[data-dropfolder]")].filter(c => +c.dataset.folder !== drag.i);
+  let index = chips.length;
+  for (let i = 0; i < chips.length; i++) {
+    const box = chips[i].getBoundingClientRect();
+    if (e.clientY < box.top || (e.clientY <= box.bottom && e.clientX < box.left + box.width / 2)) { index = i; break; }
+  }
+  return {bar, index, before: chips[index] || bar.querySelector("[data-act=addfolder], .chipform")};
+}
+
+// A small preview under the cursor instead of the browser's full-size ghost of the board photo.
+function smallDragImage(e, el) {
+  const pic = el.querySelector("img");
+  if (!pic || !pic.complete || !pic.naturalWidth) return;
+  const box = el.getBoundingClientRect();
+  const w = Math.round(Math.min(200, Math.max(70, box.width / 4)));
+  const h = Math.round(w * pic.naturalHeight / pic.naturalWidth);
+  const canvas = document.createElement("canvas");
+  canvas.width = w * 2; canvas.height = h * 2;  // sharp on retina screens
+  canvas.style.cssText = `position:fixed;left:-9999px;top:0;width:${w}px;height:${h}px;border-radius:4px`;
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(pic, 0, 0, canvas.width, canvas.height);
+  document.body.appendChild(canvas);
+  e.dataTransfer.setDragImage(canvas, w / 2, h / 2);
+  setTimeout(() => canvas.remove(), 0);
+}
+
+// Dragging a roll: a compact card (its name + first few frames) instead of the browser's picture of
+// the whole card, which in Chrome also paints the strip's scrolled-away frames off to the right.
+function rollDragImage(e, card) {
+  const roll = S.rolls[+card.dataset.roll];
+  const pics = [...card.querySelectorAll(".strip img")].filter(p => p.complete && p.naturalWidth).slice(0, 3);
+  const ph = 46, gap = 3, pad = 6, labelH = 20;
+  const widths = pics.map(p => Math.round(ph * p.naturalWidth / p.naturalHeight));
+  const w = Math.max(150, Math.min(260, widths.reduce((a, b) => a + b + gap, -gap) + pad * 2));
+  const h = pad + labelH + (pics.length ? ph + pad : 0);
+  const k = 2;  // sharp on retina screens
+  const canvas = document.createElement("canvas");
+  canvas.width = w * k; canvas.height = h * k;
+  canvas.style.cssText = `position:fixed;left:-9999px;top:0;width:${w}px;height:${h}px`;
+  const ctx = canvas.getContext("2d");
+  ctx.scale(k, k);
+  const css = getComputedStyle(card);
+  ctx.fillStyle = "#262626";
+  ctx.beginPath(); (ctx.roundRect ? ctx.roundRect(0, 0, w, h, 8) : ctx.rect(0, 0, w, h)); ctx.fill();
+  ctx.fillStyle = getComputedStyle(card.closest(".cam")).getPropertyValue("--c").trim() || "#e9a23b";  // camera colour edge
+  ctx.fillRect(0, 0, 4, h);
+  ctx.fillStyle = "#eee"; ctx.font = `600 13px ${css.fontFamily}`; ctx.textBaseline = "middle";
+  ctx.fillText(`${roll.name} · ${plural(roll.count, "photo")}`, pad + 4, pad + labelH / 2, w - pad * 2 - 4);
+  let x = pad + 4;
+  pics.forEach((p, i) => {
+    if (x >= w - pad) return;
+    const pw = Math.min(widths[i], w - pad - x);
+    ctx.drawImage(p, 0, 0, p.naturalWidth * pw / widths[i], p.naturalHeight, x, pad + labelH, pw, ph);
+    x += pw + gap;
+  });
+  document.body.appendChild(canvas);
+  e.dataTransfer.setDragImage(canvas, 24, h / 2);
+  setTimeout(() => canvas.remove(), 0);
+}
+
+function endDrag() {
+  drag = null; clearDropUI();
+  document.querySelectorAll(".dragging").forEach(x => x.classList.remove("dragging"));
+}
+
+let downOnStripBar = false;
+app.addEventListener("pointerdown", e => {
+  const strip = e.target.closest && e.target.closest(".roll .strip");
+  downOnStripBar = !!strip && e.target === strip && e.offsetY >= strip.clientHeight;  // below the photos = the bar
+}, true);
+app.addEventListener("dragstart", e => {
+  if (downOnStripBar) { e.preventDefault(); return; }
+  if (view === "merge" && S && S.mode) { e.preventDefault(); return; }  // clicking only, while a mode is on
+  const t = e.target.closest ? e.target : e.target.parentElement;
+  const card = view === "setup" && t.closest(".roll[draggable]");
+  const photo = view === "merge" && t.closest(".tl-item[draggable]");
+  const fresh = view === "merge" && t.closest(".lane [data-id][draggable]");
+  const chip = view === "merge" && t.closest(".chip[data-dropfolder][draggable]");
+  const cell = view === "review" && t.closest(".cell[draggable]");
+  if (cell) drag = {kind: "review", k: +cell.dataset.k};
+  else if (chip) drag = {kind: "folder", i: +chip.dataset.folder};
+  else if (card) drag = {kind: "roll", roll: +card.dataset.roll};
+  else if (photo) drag = {kind: "photo", k: +photo.dataset.k};
+  else if (fresh) drag = {kind: "board", id: +fresh.dataset.id};
+  else return;
+  const el = cell || chip || card || photo || fresh;
+  if (fresh || cell) smallDragImage(e, el);
+  if (card) rollDragImage(e, card);
+  e.dataTransfer.effectAllowed = "move";
+  e.dataTransfer.setData("text/plain", "roll-merge");  // needed for Firefox
+  requestAnimationFrame(() => el.classList.add("dragging"));
+});
+
+app.addEventListener("dragover", e => {
+  if (!drag) return;
+  if (drag.kind === "roll") {
+    const spot = rollDropSpot(e);
+    if (!spot) { clearDropUI(); return; }
+    e.preventDefault(); e.dataTransfer.dropEffect = "move";
+    if (spot.add) {
+      clearDropUI();
+      if (S.lanes.length < MAX_CAMERAS) spot.add.classList.add("drop-target");
+      return;
+    }
+    document.querySelectorAll(".drop-target").forEach(x => { if (x !== spot.cam) x.classList.remove("drop-target"); });
+    spot.cam.classList.add("drop-target");
+    let marker = document.querySelector(".drop-marker");
+    if (!marker) { marker = document.createElement("div"); marker.className = "drop-marker"; }
+    if (marker.parentNode !== spot.list || marker.nextElementSibling !== spot.before) {
+      if (spot.before) spot.list.insertBefore(marker, spot.before); else spot.list.appendChild(marker);
+    }
+    return;
+  }
+  if (drag.kind === "review") {
+    // long weddings don't fit on one screen: scroll when the photo is held near the top or bottom edge
+    const edge = 90;
+    if (e.clientY < edge) window.scrollBy(0, -Math.ceil((edge - e.clientY) / 4));
+    else if (e.clientY > innerHeight - edge) window.scrollBy(0, Math.ceil((e.clientY - innerHeight + edge) / 4));
+    const spot = reviewDropSpot(e);
+    if (!spot) { clearDropUI(); return; }
+    e.preventDefault(); e.dataTransfer.dropEffect = "move";
+    document.querySelectorAll(".drop-target").forEach(x => { if (x !== spot.head) x.classList.remove("drop-target"); });
+    if (spot.head) spot.head.classList.add("drop-target");
+    showReviewMarker(spot);
+    return;
+  }
+  if (drag.kind === "folder") {
+    const spot = folderDropSpot(e);
+    if (!spot) { clearDropUI(); return; }
+    e.preventDefault(); e.dataTransfer.dropEffect = "move";
+    let marker = document.querySelector(".chip-marker");
+    if (!marker) { marker = document.createElement("span"); marker.className = "chip-marker"; }
+    if (marker.nextElementSibling !== spot.before) spot.bar.insertBefore(marker, spot.before);
+    return;
+  }
+  const spot = photoDropSpot(e);
+  if (!spot || (drag.kind === "board" && !spot.row)) { clearDropUI(); return; }  // board photos only drop into the strip
+  e.preventDefault(); e.dataTransfer.dropEffect = "move";
+  if (spot.chip || spot.board) {
+    clearDropUI(); (spot.chip || spot.board).classList.add("drop-target");
+    return;
+  }
+  document.querySelectorAll(".drop-target").forEach(x => x.classList.remove("drop-target"));
+  // light up the gap the photo will land in (each photo's gap sits just before it; the end gap is last)
+  const g = spot.before ? spot.before.previousElementSibling : spot.row.lastElementChild;
+  document.querySelectorAll(".tl-gap.dropping").forEach(x => { if (x !== g) x.classList.remove("dropping"); });
+  if (g && g.classList.contains("tl-gap")) g.classList.add("dropping");
+});
+
+app.addEventListener("drop", e => {
+  if (!drag) return;
+  e.preventDefault();
+  const d = drag;
+  const spot = d.kind === "roll" ? rollDropSpot(e) : d.kind === "folder" ? folderDropSpot(e) : d.kind === "review" ? reviewDropSpot(e) : photoDropSpot(e);
+  endDrag();
+  if (!spot) return;
+  if (d.kind === "review") return movePhoto(d.k, spot.index, spot.folder);
+  if (d.kind === "folder") return moveFolder(d.i, spot.index);
+  if (d.kind === "board") return spot.row ? placeAt(d.id, spot.index, spot.folder) : undefined;
+  if (d.kind === "photo") {
+    if (spot.chip) return assignFolder(d.k, spot.folder);
+    if (spot.board) return sendToBoard(d.k);
+    return movePhoto(d.k, spot.index, spot.folder);
+  }
+  const r = d.roll;
+  if (spot.add) {
+    if (S.lanes.length >= MAX_CAMERAS) return;
+    return changeSetup(() => {
+      S.lanes.forEach(l => { l.rolls = l.rolls.filter(x => x !== r); });
+      S.lanes.push({name: `Camera ${S.lanes.length + 1}`, rolls: [r]});
+    });
+  }
+  const lanes = S.lanes.map(l => l.rolls.filter(x => x !== r));
+  lanes[spot.lane].splice(spot.index, 0, r);
+  if (JSON.stringify(lanes) === setupSig()) return;  // dropped where it already was
+  changeSetup(() => { S.lanes.forEach((l, i) => { l.rolls = lanes[i]; }); });
+});
+
+app.addEventListener("dragend", endDrag);
+
+function exampleName(merged) {
+  const name = S.nameMode === "custom" && S.prefix.trim()
+    ? `${S.prefix.trim()} 0001.jpg`
+    : `0001_${merged.length ? S.names[merged[0].id] : "000180620026.jpg"}`;
+  return (S.folders.length && merged.length ? folderDirName(merged[0].folder) + "/" : "") + name;
+}
+
+function updateExample() {
+  const ex = document.getElementById("example");
+  if (ex) ex.textContent = exampleName(derive().merged);
+}
+
+async function handle(e) {
+  const el = e.target.closest("[data-act]");
+  if (!el || el.tagName === "FORM" || el.tagName === "INPUT") return;
+  const act = el.dataset.act;
+  const d = el.dataset;
+  switch (act) {
+    case "quit": return quitApp();
+    case "choose": return chooseFolder();
+    case "recent": return openFolder(d.path);
+    case "tab": return goTo(d.view);
+    case "review": return goTo("review");
+    case "start": return goTo("merge");
+    case "setcursor": return setCursor(+d.pos, +d.folder);
+    case "clearcursor": S.cursor = null; S.active = Math.max(0, S.folders.length - 1); S.scrollToEnd = true; save(); return render();
+    case "choice": { const o = overlay; overlay = null; renderOverlay(); return o.onPick(o.options[+d.i].value); }
+    case "addcam": return changeSetup(() => S.lanes.push({name: `Camera ${S.lanes.length + 1}`, rolls: []}));
+    case "removecam": return changeSetup(() => S.lanes.splice(+d.lane, 1));
+    case "up": case "down": {
+      const lane = S.lanes[+d.lane].rolls, i = +d.i, j = act === "up" ? i - 1 : i + 1;
+      return changeSetup(() => { [lane[i], lane[j]] = [lane[j], lane[i]]; });
+    }
+    case "move": {
+      const r = +d.roll, to = +d.to;
+      return changeSetup(() => {
+        S.lanes.forEach(l => { l.rolls = l.rolls.filter(x => x !== r); });
+        S.lanes[to].rolls.push(r);
+        S.lanes[to].rolls.sort((a, b) => a - b);
+      });
+    }
+    case "viewroll": overlay = {kind: "roll", roll: +d.roll}; return renderOverlay();
+    case "rollframe": {
+      const roll = S.rolls[+d.roll];
+      return openPhotos(range(roll.start, roll.count), +d.i, {title: i => `Frame ${i + 1} of ${roll.count}`});
+    }
+    case "rollphoto": {
+      const roll = S.rolls[overlay.roll];
+      return openPhotos(range(roll.start, roll.count), +d.i, {title: i => `Frame ${i + 1} of ${roll.count}`, back: overlay});
+    }
+    case "zoomlane": {
+      const {next} = derive();
+      return openPhotos(next[+d.lane], 0, {title: i => i === 0 ? "Next up" : `${i + 1} ahead`});
+    }
+    case "preset": return addFolders(["Pre-Ceremony", "The-Ceremony", "Reception"]);
+    case "addfolder": S.addingFolder = true; return render();
+    case "setactive": {
+      // carry on from the end of this folder's block, wherever it sits on the timeline
+      const f = +d.folder;
+      S.active = f; S.cursor = null;
+      if (insertPoint().pos === S.order.length) S.scrollToEnd = true; else S.scrollToCursor = true;  // show the green bar
+      save(); return render();
+    }
+    case "jumpfolder": {
+      // just look: scroll the strip to where this folder starts, change nothing
+      const row = document.querySelector(".tl-row");
+      if (!row) return;
+      row._pin = "folder"; row._folder = +d.folder;
+      applyPin(row, true);
+      const div = row.querySelector(`.tl-div[data-folder="${d.folder}"]`);
+      if (div) { div.classList.remove("pulse"); void div.offsetWidth; div.classList.add("pulse"); }
+      return;
+    }
+    case "renamefolder": S.renaming = +d.folder; S.addingFolder = false; return render();
+    case "delfolder": return deleteFolder(+d.folder);
+    case "take":
+      if (S.mode === "banish" && d.id !== undefined) return banishBoard(+d.id);
+      if (S.mode) return toast(modeBlocked(), 3500);
+      return take(+d.lane, +d.n);
+    case "finaleimg": if (S.mode === "banish") return banishBoard(+d.id); return;
+    case "undo": return undo();
+    case "modeoff": return setMode(null);
+    case "showbanished": overlay = {kind: "banished"}; return renderOverlay();
+    case "recover": return recover(+d.id);
+    case "recoverall": return recoverAll();
+    case "revertreview": return revertReview();
+    case "viewmerged": {
+      if (view === "merge" && S.mode === "remove") return sendToBoard(+d.k);
+      if (view === "merge" && S.mode === "banish") return banishPlaced(+d.k);
+      const {merged} = derive();
+      return openPhotos(merged.map(m => m.id), +d.k, {title: i => `#${i + 1} of ${merged.length}`, rewind: view === "review"});
+    }
+    case "rewind": {
+      const k = overlay.i;
+      const after = S.order.length - k - 1;
+      if (after > 0 && !confirm(`Keep photos 1–${k + 1} and un-place the ${plural(after, "photo")} after it?`)) return;
+      rewindTo(k); overlay = null; return goTo("merge");
+    }
+    case "closeov": overlay = overlay && overlay.back ? overlay.back : null; return renderOverlay();
+    case "ovprev": if (overlay.i > 0) { overlay.i--; renderOverlay(); } return;
+    case "ovnext": if (overlay.i < overlay.list.length - 1) { overlay.i++; renderOverlay(); } return;
+    case "pickout": {
+      try {
+        const r = await api("/api/pick-folder", {prompt: "Where should the sorted copies go?"});
+        if (r.unavailable) { toast("Type the location into the box instead."); return; }
+        if (r.path) { S.outdir = r.path.replace(/[\\/]+$/, "") + (r.path.includes("\\") ? "\\" : "/") + S.rootName + " (sorted)"; save(); renderReview(); }
+      } catch (err) { toast(err.message); }
+      return;
+    }
+    case "export": return doExport();
+    case "reveal": return api("/api/reveal", {path: exportJob.outdir}).catch(err => toast(err.message));
+  }
+}
+
+document.addEventListener("keydown", e => {
+  if (stopped || (e.target.matches && e.target.matches("input, textarea"))) return;
+  if (overlay) {
+    if (e.key === "Escape") { overlay = overlay.back || null; renderOverlay(); }
+    else if (overlay.kind === "choice") return;
+    else if (overlay.kind === "banished" && (e.key === "z" || e.key === "Z") && !e.metaKey && !e.ctrlKey && !e.altKey) undo();
+    else if (e.key === "ArrowLeft" && overlay.kind === "photo" && overlay.i > 0) { overlay.i--; renderOverlay(); }
+    else if (e.key === "ArrowRight" && overlay.kind === "photo" && overlay.i < overlay.list.length - 1) { overlay.i++; renderOverlay(); }
+    else return;
+    e.preventDefault(); return;
+  }
+  if (view === "review" && S && !e.metaKey && !e.ctrlKey && !e.altKey && (e.key === "z" || e.key === "Z")) { e.preventDefault(); undo(); return; }
+  if (view !== "merge" || !S || e.metaKey && e.key !== "z" || e.ctrlKey && e.key !== "z" || e.altKey) return;
+  if (S.mode) {
+    if (e.key === "Escape") { e.preventDefault(); setMode(null); return; }
+    if (e.key === "z" || e.key === "Z" || e.key === "Backspace") { e.preventDefault(); undo(); return; }
+    if (/^[1-4]$/.test(e.key) || e.key === "ArrowLeft" || e.key === "ArrowRight" || e.key === "Enter") { e.preventDefault(); toast(modeBlocked(), 3500); }
+    return;
+  }
+  const {next} = derive();
+  const active = S.lanes.map((_, l) => l).filter(l => next[l].length);
+  let lane = -1;
+  if (/^[1-4]$/.test(e.key)) lane = +e.key - 1;
+  else if (e.key === "ArrowLeft" && S.lanes.length === 2) lane = 0;
+  else if (e.key === "ArrowRight" && S.lanes.length === 2) lane = 1;
+  if (lane >= 0) {
+    e.preventDefault();
+    if (active.length >= 2 && active.includes(lane)) take(lane, 1);
+    return;
+  }
+  if (e.key === "z" || e.key === "Z" || e.key === "Backspace") { e.preventDefault(); undo(); return; }
+  if (e.key === "Escape" && insertPoint().pos !== S.order.length) { S.cursor = null; S.active = Math.max(0, S.folders.length - 1); S.scrollToEnd = true; save(); render(); return; }
+  if (e.key === "Enter" && active.length === 1) {
+    e.preventDefault(); const l = active[0]; take(l, next[l].length);
+  }
+});
+
+// start
+if (!TOKEN) app.innerHTML = `<div class="stopped"><p>Open Roll Merge with its Start file, not this page directly.</p></div>`;
+else if (params.get("open")) openFolder(params.get("open"));
+else render();
+</script>
+</body>
+</html>

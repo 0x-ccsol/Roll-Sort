@@ -1,0 +1,54 @@
+ROLL MERGE
+Puts film scans from two (or more) cameras back into the order they were shot.
+
+Each roll from the lab is already in order. Roll Merge shows the next photo
+from each camera side by side, and you click whichever one came next.
+At the end it saves numbered copies in a new folder. Your original files are
+never changed.
+
+
+FIRST TIME ONLY
+1. Install Python 3 if the computer doesn't have it:
+   https://www.python.org/downloads/
+   (Windows: tick "Add python.exe to PATH" in the installer.)
+2. Mac only: the first time, macOS may say the Start file "can't be opened".
+   Right-click "Start Roll Merge (Mac).command" and choose Open, then Open again.
+   On newer macOS: System Settings > Privacy & Security > scroll down > "Open Anyway".
+3. The first start installs a couple of small parts (needs internet, ~1 minute).
+
+
+EVERY TIME
+1. Double-click "Start Roll Merge (Mac).command" (or the Windows one).
+   A small window opens, and the app opens in your web browser.
+   Keep that small window open while you work.
+2. Choose the folder the lab sent (the one with a folder for each roll).
+3. Sort the rolls under the camera that shot them, in shooting order.
+   Scroll along a roll's photos with the mouse wheel (or the bar under them),
+   and click one to see it large, if you're not sure.
+4. Click whichever photo came next. Tips:
+   - Left / right arrow keys pick camera 1 / camera 2.
+   - Click a small photo further along to place a whole run at once.
+   - Z undoes.
+   - The mouse wheel scrolls the strip of placed photos at the top.
+   - "Remove from timeline": tick it, then click photos in the top strip to
+     send them back down to be placed again. Untick it (or press Esc) after.
+   - "Banish from sorting": tick it, then click bad frames or exact duplicates
+     to leave them out. Nothing is deleted: "Banished" lets you get them back.
+   - Your progress saves by itself. You can quit and carry on later.
+5. Review the full timeline. You can still drag photos to fix their order and
+   click a folder's name to rename it. Undo, or "Revert all changes made on
+   this screen", fixes mistakes. Then Export. The copies are numbered
+   (0001, 0002 ...) and get capture times in order, so Lightroom sorts them
+   correctly. To be safe, sort by File Name.
+
+
+TRY IT FIRST
+The "Demo wedding" folder has 4 short practice rolls from 2 cameras.
+Each demo photo shows the time it was "taken", so you can check the result.
+Camera 1 shot the rolls ending 2 and 4, camera 2 shot 1 and 3.
+
+
+GOOD TO KNOW
+- Works with JPG and TIFF.
+- Thumbnails are cached so reopening is quick. The cache cleans itself up.
+- Quit with the Quit button in the app, or by closing the small window.
