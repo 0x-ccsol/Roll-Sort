@@ -17,7 +17,7 @@ uploaded anywhere.
 
 ## Download
 
-Get **`Roll Sort.zip`** from the [latest release](https://github.com/0x-ccsol/Roll-Merge/releases/latest)
+Get **`Roll Sort.zip`** from the [latest release](https://github.com/0x-ccsol/Roll-Sort/releases/latest)
 and unzip it. Works on **Mac** and **Windows**.
 
 ## First time only
