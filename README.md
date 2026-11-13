@@ -1,6 +1,7 @@
 # Roll Merge
 
-**Puts film scans from two (or more) cameras back into the order they were shot.**
+**Puts film scans from two (or more) cameras back into the order they were shot, or sorts one big
+folder of photos into folders.**
 
 Shooting a wedding on two film cameras? The lab sends the scans back one folder per roll. Each
 roll is in order, but nothing says how the two cameras' rolls fit together. Roll Merge shows the
@@ -69,11 +70,32 @@ Lightroom and other apps sort them correctly. To be safe, sort by **File Name**.
 
 ![Review & export: the whole wedding in order, grouped by folder](docs/screenshots/4-review.png)
 
+## Sort a shoot into folders
+
+Got one folder with a whole shoot in it, say jewellery photos that need splitting into
+*Bracelets*, *Necklaces* and *Earrings*? Choose **Roll Sort** on the first screen, then choose
+the folder. For film rolls, choose **Roll Merge**. It remembers your choice; click the name at the
+top left to switch. The two are kept completely separate, each with its own progress and settings.
+
+- Add a folder for each group with **+ Folder**.
+- **Click** a photo to put it in the current folder; **▼ Sort here** switches folder.
+- To do many at once, **Shift-click** the first photo, then **Shift-click** the last: everything in
+  between is selected. Press **Enter** to put them in the current folder.
+- **Space** shows the photo under the mouse large; click outside the photo to close it.
+- Sorted photos leave a **blank space**, so nothing shifts while you click quickly. Press **R** (or
+  **Refresh board**) to close up the gaps; it also does it by itself after 12 gaps once you pause.
+- Export makes a copy in each folder, keeping the **original names** (or naming them
+  *Bracelets 001*, *Bracelets 002* …) and each photo's **own date**.
+
 ## Try it first
 
 The **Demo wedding** folder has 4 short practice rolls from 2 cameras. Each demo photo shows the
 time it was "taken", so you can check the result. Camera 1 shot the rolls ending **2** and
 **4**; camera 2 shot **1** and **3**.
+
+For **Roll Sort**, the **Fruit demo** folder has 30 mixed-up photos of apples, oranges and bananas.
+Add folders such as *Apples*, *Oranges* and *Bananas* and sort them; each photo is labelled, so
+you can check the result.
 
 ## Good to know
 

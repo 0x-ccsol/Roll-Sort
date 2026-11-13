@@ -61,8 +61,27 @@ kbd {
   position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: 12px;
   padding: 10px 18px; background: rgba(18,18,18,.92); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line);
 }
-.brand { display: flex; align-items: center; gap: 9px; font-weight: 650; letter-spacing: .01em; }
+.brand { display: flex; align-items: center; gap: 9px; font-weight: 650; letter-spacing: .01em; font-size: 15px;
+  border: 1px solid transparent; background: transparent; color: var(--text); padding: 5px 10px 5px 7px; margin-left: -8px; border-radius: 9px; cursor: pointer; }
+.brand:hover { background: var(--panel-2); border-color: var(--line); }
 .brand svg { width: 22px; height: 22px; }
+.brand .sw { color: var(--muted); font-size: 12px; font-weight: 500; }
+.brand:hover .sw { color: var(--text); }
+.chooser { max-width: 860px; margin: 0 auto; padding: 11vh 24px 60px; text-align: center; }
+.chooser h1 { font-size: 30px; margin: 0 0 8px; font-weight: 650; letter-spacing: -.01em; }
+.chooser .lead { color: var(--muted); margin: 0 0 34px; font-size: 16px; }
+.apps { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; text-align: left; }
+.appcard { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; white-space: normal; padding: 24px 24px 22px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 16px; cursor: pointer; position: relative; text-align: left; }
+.appcard:hover { border-color: var(--accent); background: var(--panel-2); }
+.appcard svg { width: 46px; height: 46px; margin-bottom: 8px; }
+.appcard b { font-size: 21px; font-weight: 700; }
+.appcard .what { color: var(--text); font-size: 15px; }
+.appcard .eg { color: var(--muted); font-size: 13px; }
+.appcard .go { margin-top: 12px; color: var(--accent); font-weight: 650; font-size: 14px; }
+.appcard .inuse { position: absolute; top: 14px; right: 14px; font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--accent-ink); background: var(--accent); padding: 2px 8px; border-radius: 10px; font-weight: 700; }
+.chooser .note { color: var(--muted); font-size: 13px; margin-top: 26px; }
 .bar .crumb { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; font-size: 13px; }
 .tabs { display: flex; gap: 2px; background: #0c0c0c; border: 1px solid var(--line); border-radius: 10px; padding: 3px; margin-left: 8px; }
 .tab { display: inline-flex; align-items: center; gap: 7px; border: 0; background: transparent; color: var(--muted); padding: 6px 12px; border-radius: 7px; font-size: 14px; }
@@ -335,6 +354,42 @@ button.chip:hover { color: var(--text); }
 .banished-ov .ov-grid button:hover { box-shadow: inset 0 0 0 3px var(--insert); }
 .banished-ov .ov-grid button:hover::after { content: "↺ Recover"; position: absolute; left: 0; right: 0; bottom: 0; padding: 4px 0; background: var(--insert); color: #04210f; font-size: 12px; font-weight: 800; text-align: center; }
 .ov-empty { color: var(--muted); text-align: center; padding: 60px 20px; font-size: 15px; }
+/* sort-into-folders mode: the photo grid board */
+.gridboard { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 12px 18px 0; }
+.gbar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; font-size: 14px; color: var(--muted); margin-bottom: 10px; min-height: 30px; }
+.gbar b { color: var(--text); }
+.gbar .fdest { color: var(--accent); }
+.gbar .warnline { color: var(--accent); font-weight: 600; }
+.gbar .spacer { flex: 1; }
+.gbar .selcount { color: #fff; font-weight: 700; }
+.gsize { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; }
+.gsize input { width: 110px; accent-color: var(--accent); }
+.gscroll { flex: 1; min-height: 0; overflow-y: auto; padding: 2px 2px 10px; scrollbar-color: #444 transparent; }
+.ggrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--g, 190px), 1fr)); gap: 8px; }
+.gtile { position: relative; padding: 0; border: 0; background: #000; border-radius: 8px; overflow: hidden; aspect-ratio: 3 / 2; cursor: pointer; }
+.gtile img { width: 100%; height: 100%; object-fit: contain; display: block; pointer-events: none; }
+.gtile:hover { box-shadow: inset 0 0 0 3px var(--accent); }
+.gtile.sel { box-shadow: inset 0 0 0 4px #fff; }
+.gtile.sel::before { content: "✓"; position: absolute; left: 6px; top: 6px; z-index: 2; width: 24px; height: 24px; border-radius: 50%;
+  background: #fff; color: #111; font-weight: 800; font-size: 14px; display: grid; place-items: center; }
+.gtile .gfn { position: absolute; left: 0; right: 0; bottom: 0; padding: 2px 6px; font: 11px var(--mono); color: #ddd; background: rgba(0,0,0,.6);
+  text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0; pointer-events: none; }
+.gtile:hover .gfn { opacity: 1; }
+.gtile .gzoom { position: absolute; right: 6px; top: 6px; z-index: 2; width: 30px; height: 30px; border-radius: 8px; background: rgba(0,0,0,.7);
+  border: 1px solid rgba(255,255,255,.25); display: grid; place-items: center; opacity: 0; }
+.gtile .gzoom svg { width: 16px; height: 16px; }
+.gtile:hover .gzoom { opacity: 1; }
+.gtile.dragging { opacity: .3; }
+.merge.mode-remove .gridboard { opacity: .45; }
+.merge.mode-banish .gtile:hover { box-shadow: inset 0 0 0 3px var(--banish); }
+.merge.mode-banish .gtile:hover::after { content: "⊘ Banish"; position: absolute; left: 0; right: 0; bottom: 0; z-index: 3; padding: 3px 0;
+  text-align: center; font-size: 12px; font-weight: 800; background: var(--banish); color: #fff; }
+.gslot { aspect-ratio: 3 / 2; border: 2px dashed #333; border-radius: 8px; display: grid; place-items: center; min-width: 0; }
+.gslot span { max-width: 100%; padding: 0 8px; font-size: 12px; color: #707070; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gauto { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; }
+.gauto select { font-size: 12px; padding: 2px 4px; color: var(--text); background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; }
+.linkbtn { background: none; border: 0; padding: 0 2px; color: var(--accent); text-decoration: underline; cursor: pointer; font-size: 13px; }
+
 /* review: undo / revert */
 .revrow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 0 14px; font-size: 13px; color: var(--muted); }
 .revrow + .revrow { margin-top: -6px; }
@@ -359,6 +414,14 @@ button.chip:hover { color: var(--text); }
 .choice .opt { display: block; width: 100%; text-align: left; white-space: normal; padding: 12px 14px; margin-bottom: 8px; }
 .choice .opt b { display: block; font-weight: 600; }
 .choice .opt span { display: block; font-size: 13px; color: var(--muted); margin-top: 2px; }
+.choice .opt.danger { border-color: rgba(239,68,68,.55); }
+.choice .opt.danger b { color: var(--banish); }
+.choice .opt.danger:hover { border-color: var(--banish); background: rgba(239,68,68,.10); }
+.choice .warnlist { margin: 0 0 14px; padding-left: 20px; color: var(--muted); font-size: 14px; line-height: 1.5; }
+.choice .warnlist b { color: var(--text); }
+.resetbox { margin-top: 12px; }
+.dangerbtn { color: var(--banish); border-color: rgba(239,68,68,.45); }
+.dangerbtn:hover { border-color: var(--banish); background: rgba(239,68,68,.10); }
 .choice .cancel { margin-top: 6px; }
 .stopped { height: 100vh; display: grid; place-items: center; text-align: center; color: var(--muted); padding: 0 24px; }
 .stopped p { max-width: 520px; margin: 10px auto; line-height: 1.5; }
@@ -388,6 +451,19 @@ let quitting = false, stopped = false;  // see showStopped()
 let homeError = "";
 let exportJob = null;  // {id, done, total, finished, error, outdir}
 
+// Roll Merge is two separate apps that share nothing but preview pictures: Roll Sort (one batch
+// of photos into folders, S.kind "folders") and Roll Merge (film rolls from several cameras).
+// Chosen on the first screen, switched by clicking the name at the top left; each keeps its own
+// recent folders, progress and settings.
+let APP = (() => { try { const a = localStorage.getItem("rm-app"); return a === "sort" || a === "merge" ? a : null; } catch (e) { return null; } })();
+let pendingOpen = null;  // a folder given on the command line, opened once an app is chosen
+function appName(a) { return (a || APP) === "sort" ? "Roll Sort" : "Roll Merge"; }
+function appKind() { return APP === "sort" ? "folders" : "merge"; }
+function setting(key) { try { return localStorage.getItem(`rm-${APP}-${key}`); } catch (e) { return null; } }
+function setSetting(key, v) { try { localStorage.setItem(`rm-${APP}-${key}`, v); } catch (e) {} }
+try { ["rm-mode", "rm-auto-refresh", "rm-grid-size"].forEach(k => localStorage.removeItem(k)); } catch (e) {}  // from before the split
+const SORT_LOGO = `<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="1.6" stroke="var(--lane-0)" stroke-width="2"/><rect x="13" y="3" width="8" height="8" rx="1.6" stroke="var(--lane-1)" stroke-width="2"/><rect x="3" y="13" width="8" height="8" rx="1.6" stroke="var(--lane-1)" stroke-width="2"/><rect x="13" y="13" width="8" height="8" rx="1.6" stroke="var(--lane-0)" stroke-width="2"/></svg>`;
+function logo(a) { return (a || APP) === "sort" ? SORT_LOGO : LOGO; }
 const LOGO = `<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="2.5" y="5" width="13" height="14" rx="2" stroke="var(--lane-0)" stroke-width="2"/><rect x="8.5" y="5" width="13" height="14" rx="2" stroke="var(--lane-1)" stroke-width="2"/></svg>`;
 const ZOOM_ICON = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>`;
 
@@ -560,6 +636,7 @@ function movePhoto(from, to, target) {
 
 // The frames of one camera should stay in frame order: warn if a manual move breaks it.
 function warnFrameOrder(id) {
+  if (S.kind === "folders") return;
   const {merged, laneOf, next} = derive();
   const lane = laneOf.get(id);
   const frameIdx = new Map(laneFrames(lane).map((x, i) => [x, i]));
@@ -584,8 +661,141 @@ function placeAt(id, to, folder) {
   if (S.cursor && to < S.cursor.pos) S.cursor.pos++;
   S.keepScroll = true;
   S.flashIds = new Set([id]);
+  S.sel.delete(id);
   warnFrameOrder(id);
   save(); render();
+}
+
+// Sort-into-folders mode: put these photos at the end of folder f (default: where the green bar is).
+function placeIds(ids, f) {
+  ids = ids.filter(id => !S.order.includes(id) && !S.banished.includes(id)).sort((a, b) => a - b);
+  if (!ids.length) return;
+  if (!S.folders.length) { toast("Add a folder first: click “+ Folder” above."); return; }
+  snapshot();
+  const here = insertPoint();
+  const ip = f === undefined || f === here.folder ? here : {pos: blockRange(f)[1], folder: f};
+  S.order.splice(ip.pos, 0, ...ids);
+  S.folderOf.splice(ip.pos, 0, ...ids.map(() => ip.folder));
+  if (S.cursor && (ip.pos < S.cursor.pos || (ip.pos === S.cursor.pos && ip.folder === S.cursor.folder))) S.cursor.pos += ids.length;
+  if (ip !== here) S.keepScroll = true;  // sent to another folder with a number key: leave the strip where it is
+  else if (ip.pos + ids.length === S.order.length) S.scrollToEnd = true;
+  else S.scrollToCursor = true;
+  S.flashIds = new Set(ids);
+  ids.forEach(id => S.sel.delete(id));
+  if (!S.sel.size) S.selAnchor = null;
+  if (ids.length > 1 || ip !== here) toast(`${plural(ids.length, "photo")} → ${S.folders[ip.folder].name}`, 1600);
+  save(); render();
+}
+
+// Sort mode: the board keeps its layout while you click. A sorted photo leaves a blank placeholder
+// until the board is refreshed (R, the button, or by itself after N gaps once you pause).
+function boardSlots() {
+  const unsorted = derive().next[0];
+  if (!S.gridSlots) S.gridSlots = unsorted.slice();
+  else {
+    const have = new Set(S.gridSlots);
+    for (const id of unsorted) if (!have.has(id)) {  // e.g. sent back from the timeline: slot it in by name order
+      const at = S.gridSlots.findIndex(x => x > id);
+      if (at < 0) S.gridSlots.push(id); else S.gridSlots.splice(at, 0, id);
+    }
+  }
+  const open = new Set(unsorted);
+  const visible = S.gridSlots.filter(id => open.has(id));
+  return {slots: S.gridSlots, open, visible, gaps: S.gridSlots.length - visible.length};
+}
+
+function refreshBoard(auto) {
+  clearTimeout(autoTimer); autoTimer = null;
+  S.gridSlots = derive().next[0].slice();
+  S.keepScroll = true;
+  render();
+  if (auto) toast("Board refreshed: the gaps are closed up.", 1500);
+}
+
+function autoN() {
+  try { const v = setting("auto-refresh"); return v === null ? 12 : +v || 0; } catch (e) { return 12; }
+}
+
+let autoTimer = null;
+function armAutoRefresh() {
+  clearTimeout(autoTimer); autoTimer = null;
+  if (!S || S.kind !== "folders" || view !== "merge" || !autoN()) return;
+  if (boardSlots().gaps < autoN()) return;
+  autoTimer = setTimeout(() => {
+    autoTimer = null;
+    if (!S || view !== "merge" || overlay || S.sel.size || S.mode) return;  // never while selecting or in a mode
+    if (S.addingFolder || S.renaming !== undefined || typing()) return armAutoRefresh();  // wait until they've finished typing
+    if (boardSlots().gaps >= autoN()) refreshBoard(true);
+  }, 1500);
+}
+
+function typing() {
+  const a = document.activeElement;
+  return !!a && (a.tagName === "TEXTAREA" || (a.tagName === "INPUT" && !["range", "checkbox", "radio"].includes(a.type)));
+}
+
+function gridClick(id, e) {
+  if (S.mode === "banish") return banishBoard(id);
+  if (S.mode) return toast(modeBlocked(), 3500);
+  const list = boardSlots().visible;
+  if (!S.sel.size) S.selAnchor = null;  // nothing selected: the next Shift-click is a new start point
+  // Shift-click: the first one marks the start, the next one selects everything from there to here
+  if (e.shiftKey) {
+    if (S.selAnchor !== null && list.includes(S.selAnchor)) {
+      const a = list.indexOf(S.selAnchor), b = list.indexOf(id);
+      S.sel = new Set(list.slice(Math.min(a, b), Math.max(a, b) + 1));
+    } else { S.sel = new Set([id]); S.selAnchor = id; }
+    return refreshGridSelection();
+  }
+  // while a selection exists, plain clicks add or remove single photos
+  if (S.sel.size) {
+    if (S.sel.has(id)) S.sel.delete(id); else S.sel.add(id);
+    if (!S.sel.size) S.selAnchor = null;
+    return refreshGridSelection();
+  }
+  placeIds([id]);
+}
+
+function gridSize() {
+  if (!S.gridSize) { try { S.gridSize = +setting("grid-size") || 190; } catch (e) { S.gridSize = 190; } }
+  return S.gridSize;
+}
+
+function gbarHtml() {
+  const {visible, gaps} = boardSlots();
+  const left = visible.length;
+  const f = S.folders.length ? S.folders[insertPoint().folder].name : null;
+  const n = S.sel.size;
+  return `<div class="gbar">
+    <span><b>${left}</b> to sort</span>
+    ${!f ? `<span class="warnline">First add a folder for each group, with “+ Folder” above.</span>`
+      : n === 1 && S.selAnchor !== null ? `<span>Start point chosen. Now <kbd>Shift</kbd>-click the last photo to select everything in between.</span>`
+      : n ? `<span>Click photos to add or remove them from the selection.</span>`
+      : `<span>Click a photo to put it in <b class="fdest">${esc(f)}</b></span>`}
+    <span class="spacer"></span>
+    ${n ? `<span class="selcount">✓ ${n} selected</span>
+           <button class="primary small" data-act="gsend" ${f ? "" : "disabled"}>Put ${n === 1 ? "it" : `all ${n}`} in ${esc(f || "")} <kbd>Enter</kbd></button>
+           <button class="small" data-act="gclear">Clear selection <kbd>Esc</kbd></button>`
+        : `<button class="small" data-act="gselall" title="Select every photo still to sort (Ctrl/⌘+A)">Select all</button>`}
+    ${gaps ? `<button class="small" data-act="grefresh" title="Close up the gaps left by sorted photos">⟳ Refresh board · ${plural(gaps, "gap")} <kbd>R</kbd></button>` : ""}
+    <label class="gauto" title="Close up the gaps by itself once there are this many, as soon as you pause">Auto-refresh
+      <select data-act="gauto">${[0, 8, 12, 24].map(v => `<option value="${v}" ${v === autoN() ? "selected" : ""}>${v ? `after ${v} gaps` : "off"}</option>`).join("")}</select></label>
+    <label class="gsize" title="Photo size">Size <input type="range" min="110" max="360" step="10" value="${gridSize()}" data-act="gsize"></label>
+  </div>`;
+}
+
+function clearSelection() { S.sel.clear(); S.selAnchor = null; refreshGridSelection(); }
+
+function refreshGridSelection() {
+  document.querySelectorAll(".gtile").forEach(t => t.classList.toggle("sel", S.sel.has(+t.dataset.id)));
+  const bar = document.querySelector(".gbar");
+  if (bar) bar.outerHTML = gbarHtml();
+}
+
+function enlargeFromGrid(id) {
+  const list = boardSlots().visible;
+  const i = list.indexOf(id);
+  if (i >= 0) openPhotos(list, i, {title: k => `${k + 1} of ${list.length} still to sort`});
 }
 
 function assignFolder(k, f) {
@@ -744,10 +954,16 @@ function deleteFolder(i) {
   const opts = [];
   if (i > 0) opts.push({value: "prev", label: `Move them into “${S.folders[i - 1].name}”`, sub: "The folder before it."});
   if (i < S.folders.length - 1) opts.push({value: "next", label: `Move them into “${S.folders[i + 1].name}”`, sub: "The folder after it."});
-  opts.push({value: "board", label: "Send them back to the board", sub: "They go back into their camera lanes, ready to be placed again wherever you choose."});
-  if (S.folders.length === 1) opts.push({value: "flat", label: "Keep them where they are", sub: "Just stop using folders."});
-  overlay = {kind: "choice", title: `Delete “${name}”?`, text: `It holds ${plural(positions.length, "photo")}. What should happen to them?`,
-             options: opts, onPick: v => applyDelete(i, v)};
+  const sortLast = S.kind === "folders" && S.folders.length === 1;  // Roll Sort: every sorted photo needs a folder
+  if (sortLast) opts.push({value: "rename", label: `Keep the folder and rename it instead`, sub: "Its photos stay where they are."});
+  opts.push({value: "board", label: "Send them back to the board", sub: S.kind === "folders"
+    ? "They go back to the photos still to sort, and the folder is deleted."
+    : "They go back into their camera lanes, ready to be placed again wherever you choose."});
+  if (!sortLast && S.folders.length === 1) opts.push({value: "flat", label: "Keep them where they are", sub: "Just stop using folders."});
+  overlay = {kind: "choice", title: `Delete “${name}”?`,
+             text: sortLast ? `It's the only folder, and it holds ${plural(positions.length, "photo")}. Sorted photos always need a folder to go in. What would you like to do?`
+                            : `It holds ${plural(positions.length, "photo")}. What should happen to them?`,
+             options: opts, onPick: v => v === "rename" ? (S.renaming = i, S.addingFolder = false, render()) : applyDelete(i, v)};
   renderOverlay();
 }
 
@@ -778,7 +994,22 @@ function applyDelete(i, mode) {
 
 // Export folders are numbered by where they start in the timeline, not by when they were created.
 // Folders sit on the timeline in folder-bar order; export numbers skip empty ones.
+function cleanName(name) {
+  return name.replace(/[\\/:*?"<>|\x00-\x1f]/g, "").replace(/^[ .\t]+|[ .\t]+$/g, "").slice(0, 80).replace(/[ .\t]+$/, "");
+}
+
 function folderDirName(i) {
+  if (S.kind === "folders") {
+    // plain names ("Bracelets"); a repeated name gets " 2", " 3"... so folders never merge on export
+    const used = new Map();
+    for (let f = 0; f <= i; f++) {
+      if (f !== i && !S.folderOf.includes(f)) continue;
+      const base = cleanName(S.folders[f].name) || "Folder";
+      const n = (used.get(base.toLowerCase()) || 0) + 1;
+      used.set(base.toLowerCase(), n);
+      if (f === i) return n > 1 ? `${base} ${n}` : base;
+    }
+  }
   let rank = 0;
   for (let f = 0; f < i; f++) if (S.folderOf.includes(f)) rank++;
   // same clean-up as the export does (rollmerge.py safe_name_part), so the Review tab shows the real folder name
@@ -805,13 +1036,13 @@ function writeState(keepalive) {
       order: S.order, folderOf: S.folderOf, folders: S.folders, active: S.active, cursor: S.cursor || null,
       banished: S.banished, reviewBase: S.reviewBase || null,
       history: S.history.slice(-30),
-      outdir: S.outdir, date: S.date, prefix: S.prefix, nameMode: S.nameMode,
+      outdir: S.outdir, date: S.date, prefix: S.prefix, nameMode: S.nameMode, kind: S.kind, fNameMode: S.fNameMode,
     };
     if (keepalive) {
       return fetch("/api/state", {method: "POST", keepalive: true, headers: {"X-Token": TOKEN, "Content-Type": "application/json"},
-                                  body: JSON.stringify({root: S.root, state})}).catch(() => {});
+                                  body: JSON.stringify({root: S.root, app: APP, state})}).catch(() => {});
     }
-    return api("/api/state", {root: S.root, state}).catch(e => toast("Couldn't save progress: " + e.message));
+    return api("/api/state", {root: S.root, app: APP, state}).catch(e => toast("Couldn't save progress: " + e.message));
   }
 }
 window.addEventListener("pagehide", () => { if (S && saveTimer) { clearTimeout(saveTimer); writeState(true); } });
@@ -867,6 +1098,8 @@ function restore(saved) {
   S.date = saved.date || S.date;
   S.prefix = saved.prefix || "";
   S.nameMode = saved.nameMode || "keep";
+  S.kind = saved.kind === "folders" ? "folders" : "merge";
+  S.fNameMode = saved.fNameMode === "folder" ? "folder" : "keep";
   S.folders = Array.isArray(saved.folders) ? saved.folders.filter(f => f && f.name).map(f => ({name: String(f.name)})) : [];
   S.active = Math.min(Math.max(0, saved.active | 0), Math.max(0, S.folders.length - 1));
   const hadProgress = (saved.order || saved.seq || []).length > 0;
@@ -909,24 +1142,82 @@ async function openFolder(path) {
   if (!path || !path.trim()) { homeError = "Paste a folder location first."; render(); return; }
   try {
     if (S) await flushSave();
-    const d = await api("/api/open", {path});
+    const d = await api("/api/open", {path, app: APP});
     if (!d.rolls.length) { homeError = `No JPG or TIFF photos were found in “${d.rootName}”.`; render(); return; }
     S = {
       root: d.root, rootName: d.rootName, gen: d.gen, rolls: d.rolls, names: d.names,
       lanes: null, order: [], folderOf: [], folders: [], active: 0, history: [], cursor: null,
       banished: [], reviewBase: null, mode: null,
       outdir: d.defaultOutdir, date: d.today, prefix: "", nameMode: "keep",
+      kind: appKind(), fNameMode: "keep", sel: new Set(), selAnchor: null, hoverId: null, clearPreviews: true,
     };
     exportJob = null;
     const restored = d.saved && restore(d.saved);
     if (!restored) S.lanes = defaultLanes();
     S.setupSig = setupSig();
     S.lastSig = stateSig();
+    S.kind = appKind();  // the server only hands back this app's own progress
+    if (!restored && S.kind === "folders") { setKind("folders"); return; }
     const {merged, total} = derive();
-    view = merged.length === total && total > 0 ? "review" : merged.length ? "merge" : "setup";
+    if (S.kind === "folders") view = merged.length === total && total > 0 ? "review" : "merge";
+    else view = merged.length === total && total > 0 ? "review" : merged.length ? "merge" : "setup";
     S.lastView = view;
     save(); render();
   } catch (e) { homeError = e.message; render(); }
+}
+
+// The first screen, and the name at the top left: choose Roll Sort or Roll Merge.
+let chooseFrom = null;  // the view to go back to if the same app is picked again
+function showChooser() {
+  if (S) flushSave();
+  chooseFrom = S && view !== "choose" ? view : null;
+  overlay = null; view = "choose"; window.scrollTo(0, 0); render();
+}
+async function pickApp(a) {
+  if (a === APP && S && chooseFrom) { const v = chooseFrom; chooseFrom = null; return goTo(v); }
+  if (S) await flushSave();
+  S = null; exportJob = null; homeError = ""; chooseFrom = null;
+  APP = a;
+  try { localStorage.setItem("rm-app", a); } catch (e) {}
+  document.title = appName();
+  view = "home";
+  if (pendingOpen) { const p = pendingOpen; pendingOpen = null; return openFolder(p); }
+  window.scrollTo(0, 0); render();
+}
+
+function renderChooser() {
+  const card = (a, what, eg) => `<button class="appcard" data-act="pickapp" data-app="${a}">
+      ${a === APP && S ? `<span class="inuse">Open now</span>` : ""}${logo(a)}<b>${appName(a)}</b>
+      <span class="what">${what}</span><span class="eg">${eg}</span>
+      <span class="go">${a === APP && S ? `Back to ${esc(S.rootName)} →` : `Use ${appName(a)} →`}</span></button>`;
+  app.innerHTML = `<div class="bar"><span class="spacer"></span><button class="ghost small" data-act="quit" title="Stop Roll Merge">Quit</button></div>
+  <main class="chooser">
+    <h1>What would you like to do?</h1>
+    <p class="lead">Your original photos are never changed. Copies are made when you export.</p>
+    <div class="apps">
+      ${card("sort", "Sort one big folder of photos into folders.", "E.g. a product shoot split into Bracelets, Necklaces and Earrings.")}
+      ${card("merge", "Put film rolls from two or more cameras back into shooting order.", "E.g. a wedding shot on two film cameras, one folder per roll from the lab.")}
+    </div>
+    <p class="note">The two are kept completely separate: each has its own folders, progress and settings.<br>
+      To switch later, click the name at the top left.</p>
+  </main>`;
+}
+
+function setKind(kind) {
+  S.kind = kind; S.undecided = false; S.gridSlots = null;
+  S.lanes = kind === "folders" ? [{name: "Photos", rolls: S.rolls.map((_, i) => i)}] : defaultLanes();
+  S.setupSig = setupSig();
+  S.mode = null; S.sel = new Set(); S.selAnchor = null;
+  S.lastView = kind === "folders" ? "merge" : "setup";
+  view = S.lastView;
+  save(); render();
+}
+
+function closeOverlay() {
+  const o = overlay;
+  overlay = o && o.back ? o.back : null;
+  renderOverlay();
+  if (o && !overlay && o.onCancel) o.onCancel();
 }
 
 function setupSig() { return JSON.stringify(S.lanes.map(l => l.rolls)); }
@@ -940,6 +1231,7 @@ function changeSetup(fn) {
 
 function goTo(v) {
   if (v !== "home" && !S) return;
+  if (v === "setup" && S.kind === "folders") v = "merge";
   if (v === "merge") {  // cameras without rolls have nothing to sort
     const keep = S.lanes.map((l, i) => l.rolls.length ? i : -1).filter(i => i >= 0);
     if (!keep.length) return;
@@ -957,7 +1249,7 @@ async function doExport() {
   const order = merged.map(m => ({id: m.id, lane: S.lanes[m.lane].name, roll: S.rolls[rollOf(m.id)].name,
                                   folder: S.folders.length ? folderDirName(m.folder) : ""}));
   try {
-    const r = await api("/api/export", {gen: S.gen, order, outdir: S.outdir, date: S.date, prefix: S.nameMode === "custom" ? S.prefix : "", partial, banished: S.banished, clearPreviews: !!S.clearPreviews});
+    const r = await api("/api/export", {gen: S.gen, order, outdir: S.outdir, date: S.date, prefix: S.nameMode === "custom" ? S.prefix : "", partial, banished: S.banished, clearPreviews: !!S.clearPreviews, kind: S.kind, naming: S.fNameMode});
     exportJob = {id: r.job, done: 0, total: order.length, finished: false, leftOut: total - order.length};
     render(); pollJob();
   } catch (e) { exportJob = {error: e.message, finished: true}; render(); }
@@ -977,9 +1269,9 @@ function showStopped(oldTab) {
   if (stopped) return;
   stopped = true; overlay = null; clearTimeout(saveTimer); saveTimer = null;
   document.querySelectorAll(".toast").forEach(t => t.remove());
-  app.innerHTML = `<div class="stopped"><div>${LOGO.replace("<svg", '<svg width="40" height="40"')}
-    <p class="stopped-title">${oldTab ? "This tab is from an earlier session of Roll Merge." : "Roll Merge has stopped running."}</p>
-    <p>${oldTab ? "Roll Merge has been started again since this tab was opened, so it can't save from here."
+  app.innerHTML = `<div class="stopped"><div>${logo().replace("<svg", '<svg width="40" height="40"')}
+    <p class="stopped-title">${oldTab ? `This tab is from an earlier session of ${appName()}.` : `${appName()} has stopped running.`}</p>
+    <p>${oldTab ? `${appName()} has been started again since this tab was opened, so it can't save from here.`
                 : "It may have been closed, or the computer went to sleep. Your progress up to the last change was saved."}</p>
     <p>${oldTab ? "Close this tab and use the newer Roll Merge tab instead. If you can't find it, double-click <b>Start Roll Merge</b> again."
                 : "Close this tab, then double-click <b>Start Roll Merge</b> again."} You'll carry on from where you were.</p></div></div>`;
@@ -990,7 +1282,7 @@ async function quitApp() {
   if (S) await flushSave();
   quitting = true;
   try { await api("/api/quit", {}); } catch (e) {}
-  app.innerHTML = `<div class="stopped"><div>${LOGO.replace("<svg", '<svg width="40" height="40"')}<p>Roll Merge has stopped. You can close this tab.</p></div></div>`;
+  app.innerHTML = `<div class="stopped"><div>${logo().replace("<svg", '<svg width="40" height="40"')}<p>${appName()} has stopped. You can close this tab.</p></div></div>`;
 }
 
 // ---------------------------------------------------------------- views
@@ -1003,25 +1295,28 @@ function progressHtml() {
 }
 
 function topBar(extra) {
-  const tabs = TABS.map(([v, label], i) => `<button class="tab ${view === v ? "on" : ""}" data-act="tab" data-view="${v}" ${!S && v !== "home" ? "disabled" : ""}><span class="tn">${i + 1}</span>${label}</button>`).join("");
+  const tabs = TABS.filter(([v]) => !(S && S.kind === "folders" && v === "setup")).map(([v, label], i) => `<button class="tab ${view === v ? "on" : ""}" data-act="tab" data-view="${v}" ${!S && v !== "home" ? "disabled" : ""}><span class="tn">${i + 1}</span>${label}</button>`).join("");
   return `<div class="bar">
-    <div class="brand">${LOGO}<span>Roll Merge</span></div>
+    <button class="brand" data-act="switchapp" title="Switch between Roll Sort and Roll Merge">${logo()}<span>${appName()}</span><span class="sw">⇄</span></button>
     <nav class="tabs">${tabs}</nav>
     ${S ? `<span class="crumb" title="${esc(S.root)}">${esc(S.rootName)}</span>` : ""}
     <span class="spacer"></span>
     ${extra || ""}
-    <button class="ghost small" data-act="quit" title="Stop Roll Merge">Quit</button>
+    <button class="ghost small" data-act="quit" title="Stop ${appName()}">Quit</button>
   </div>`;
 }
 
 function renderHome(recent, cache) {
   app.innerHTML = topBar() + `
   <main class="home">
-    ${S ? (() => { const {merged, total} = derive(); const back = TABS.find(t => t[0] === (S.lastView || "setup")) || TABS[1];
-      return `<div class="current"><div class="what"><b>${esc(S.rootName)}</b> is open · ${merged.length} of ${total} placed<small>${esc(S.root)}</small></div>
+    ${S && !S.undecided ? (() => { const {merged, total} = derive(); const back = TABS.find(t => t[0] === (S.lastView || (S.kind === "folders" ? "merge" : "setup"))) || TABS[S.kind === "folders" ? 2 : 1];
+      return `<div class="current"><div class="what"><b>${esc(S.rootName)}</b> is open · ${merged.length} of ${total} ${S.kind === "folders" ? "sorted" : "placed"}<small>${esc(S.root)}</small></div>
         <button class="primary" data-act="tab" data-view="${back[0]}">Back to ${back[1]} →</button></div>`; })() : ""}
-    <h1>Put a wedding's film scans back in the order they were shot.</h1>
-    <p class="lead">Choose the folder the lab sent: the one that holds a folder for each roll. Your original files are never changed.</p>
+    ${APP === "sort"
+      ? `<h1>Sort a shoot into folders.</h1>
+    <p class="lead">Choose the folder with your photos, then click them into folders like Bracelets, Necklaces and Earrings. Your original files are never changed.</p>`
+      : `<h1>Put film rolls back in shooting order.</h1>
+    <p class="lead">Choose the folder the lab sent: the one that holds a folder for each roll. Your original files are never changed.</p>`}
     <button class="primary pick" data-act="choose">Choose folder…</button>
     <div class="or">or paste the folder's location</div>
     <form class="pathrow" data-act="openpath">
@@ -1036,9 +1331,45 @@ function renderHome(recent, cache) {
         <span class="muted">${r.total ? (r.placed >= r.total ? "done" : `${r.placed} / ${r.total}`) : ""}</span>
       </button>`).join("")}</div>` : ""}
     ${cache ? `<div class="cachebox"><div><b>Preview pictures</b><span class="size">${cache.bytes ? fmtBytes(cache.bytes) : "none stored"}</span>
-        <small>Small copies of your photos that Roll Merge makes so they show quickly. Old ones are deleted automatically after 45 days.</small></div>
+        <small>Small copies of your photos that ${appName()} makes so they show quickly. Old ones are deleted automatically after 45 days.</small></div>
       <button class="small" data-act="clearcache" ${cache.bytes ? "" : "disabled"}>Clear previews…</button></div>` : ""}
+    <div class="cachebox resetbox"><div><b>Start completely fresh</b>
+        <small>Forget what ${appName()} has saved and start again as if it's the first time. Your photos and exported copies are never touched.</small></div>
+      <button class="small dangerbtn" data-act="resetall">Reset ${appName()}…</button></div>
   </main>`;
+}
+
+// Forget everything saved, as if Roll Merge had never been opened. Photos and exports are never touched.
+function resetEverything() {
+  const name = appName(), other = appName(APP === "sort" ? "merge" : "sort");
+  overlay = {kind: "choice", title: `Reset ${name}?`,
+    text: `This is for starting over from scratch, e.g. if something has got into a muddle. It deletes what ${name} has saved on this computer:`,
+    list: [
+      `<b>Progress for every folder</b> you've worked on in ${name}: the “Pick up where you left off” list, ${APP === "sort" ? "sorted photos" : "cameras and rolls, sort order"}, folders, banished photos and undo history.${S ? " The folder that's open now is closed." : ""}`,
+      `<b>Your ${name} settings</b>${APP === "sort" ? ": board size and auto-refresh" : ""}.`,
+      "<b>All preview pictures</b> (they're simply made again when needed).",
+      `Your <b>photos and exported copies are not touched</b>. This can't be undone.`,
+    ],
+    options: [
+      {value: APP, label: `Reset ${name}`, sub: `${other} and its progress are kept.`, danger: true},
+      {value: "all", label: `Reset both ${name} and ${other}`, sub: "Everything, as if it's the very first time. You'll be asked which one to use again.", danger: true},
+    ],
+    onPick: async which => {
+      clearTimeout(saveTimer); saveTimer = null;  // nothing of the open folder may be saved again
+      let r;
+      try { r = await api("/api/reset", {app: which}); } catch (e) { return toast(e.message); }
+      try {
+        const keys = [];
+        for (let i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
+        keys.filter(k => which === "all" ? k.startsWith("rm-") : k.startsWith(`rm-${which}-`)).forEach(k => localStorage.removeItem(k));
+      } catch (e) {}
+      const done = which === "all" ? "Roll Sort and Roll Merge have" : `${name} has`;
+      S = null; exportJob = null; homeError = ""; view = "home";
+      if (which === "all") { APP = null; view = "choose"; }
+      await render();
+      toast(`${done} been reset${r.forgotten ? `: ${plural(r.forgotten, "folder")} forgotten` : ""}. It's back to how it was the first time.`, 4500);
+    }};
+  renderOverlay();
 }
 
 async function clearCache() {
@@ -1048,7 +1379,7 @@ async function clearCache() {
   const size = fmtBytes(cache.bytes);
   overlay = {kind: "choice", title: `Clear ${size} of preview pictures?`,
     text: `Previews are small copies of your photos that Roll Merge makes so they show quickly. Over time they add up and take space you may not want to lose. Clearing them frees about ${size}. ` +
-          `Your photos, your sorting progress and any exported copies are not touched. Roll Merge makes previews again whenever it needs them, ` +
+          `Your photos, your sorting progress and any exported copies are not touched. ${appName()} makes previews again whenever it needs them, ` +
           `so the next time you open a wedding its photos may take a little longer to appear${S ? " (that includes the wedding that's open now)" : ""}.`,
     options: [{value: "yes", label: `Clear ${size} of previews`, sub: "Safe to do at any time."}],
     onPick: async () => {
@@ -1128,15 +1459,15 @@ function folderBar(merged) {
     : `<button class="chip" data-act="addfolder">+ Folder</button>`;
   if (!S.folders.length) {
     return `<div class="folders"><span class="flabel">Folders</span>
-      <button class="chip" data-act="preset">+ Pre-Ceremony · The-Ceremony · Reception</button>${addCtl}
-      <span class="fhint">Optional: split the photos into folders as you go.</span></div>`;
+      ${S.kind === "folders" ? "" : `<button class="chip" data-act="preset">+ Pre-Ceremony · The-Ceremony · Reception</button>`}${addCtl}
+      <span class="fhint">${S.kind === "folders" ? "Add a folder for each group, e.g. Bracelets, Necklaces, Earrings." : "Optional: split the photos into folders as you go."}</span></div>`;
   }
   const counts = S.folders.map(() => 0);
   merged.forEach(m => { counts[m.folder]++; });
   const chips = S.folders.map((f, i) => S.renaming === i
     ? `<form class="chipform" data-act="renameform" data-folder="${i}"><input type="text" id="renameFolder" value="${esc(f.name)}" autocomplete="off"></form>`
     : `<div class="chip ${i === insertPoint().folder ? "active" : ""}" draggable="true" data-act="jumpfolder" data-folder="${i}" data-dropfolder="${i}" title="Click: show this folder in the strip. Drag to change the folder order. Drop a photo here to move it into this folder.">
-        <span class="cname">${esc(f.name)}</span><span class="fcount">${counts[i]}</span>
+<span class="cname">${esc(f.name)}</span><span class="fcount">${counts[i]}</span>
         ${i === insertPoint().folder ? "" : `<button class="fsort" data-act="setactive" data-folder="${i}" title="New photos go into this folder, after its last photo">▼ Sort here</button>`}
         <button class="fx" data-act="renamefolder" data-folder="${i}" title="Rename">✎</button><button class="fx" data-act="delfolder" data-folder="${i}" title="Delete folder">✕</button>
       </div>`).join("");
@@ -1186,12 +1517,16 @@ function renderMerge() {
     return "";
   };
   const active = S.lanes.map((_, l) => l).filter(l => next[l].length);
+  const oldGrid = document.querySelector(".gscroll");
+  const gridScroll = oldGrid ? oldGrid.scrollTop : 0;
   const oldRow = document.querySelector(".tl-row");
   const prevScroll = oldRow ? oldRow.scrollLeft : undefined;
   const wasAtEnd = oldRow ? oldRow.scrollLeft >= oldRow.scrollWidth - oldRow.clientWidth - 4 : true;
 
   const ip = insertPoint();
   const cur = ip.pos !== merged.length ? ip : null;  // only shown in the banner when it isn't simply "at the end"
+  // sorting into folders: the banner is only for a spot picked by clicking a gap
+  const banner = S.kind === "folders" && !S.cursor ? null : cur;
   const gap = (pos, folder) => {
     // the green bar marks where the next photo goes
     const on = ip.pos === pos && (!S.folders.length || ip.folder === folder);
@@ -1213,12 +1548,26 @@ function renderMerge() {
     merged.forEach((m, k) => { tl += gap(k, 0) + item(m, k); });
     tl += gap(merged.length, 0);
   }
-  if (!merged.length && !S.folders.length) tl = `<div class="tl-empty">Nothing placed yet. Start with whichever photo was taken first, usually the first frame of one of the cameras.</div>`;
+  if (!merged.length && !S.folders.length) tl = S.kind === "folders"
+    ? `<div class="tl-empty">Start by adding a folder for each group (e.g. Bracelets, Necklaces) with “+ Folder” above, then click photos below to put them in.</div>`
+    : `<div class="tl-empty">Nothing placed yet. Start with whichever photo was taken first, usually the first frame of one of the cameras.</div>`;
 
   let body;
-  if (!active.length) {
+  if (S.kind === "folders" && active.length) {
+    const {slots, open} = boardSlots();
+    const whereTo = new Map(S.order.map((id, k) => [id, (S.folders[S.folderOf[k]] || {}).name || ""]));
+    const banished = new Set(S.banished);
+    body = `<div class="gridboard">${gbarHtml()}
+      <div class="gscroll"><div class="ggrid" style="--g:${gridSize()}px">${slots.map(id => open.has(id) ? `
+        <button class="gtile ${S.sel.has(id) ? "sel" : ""}" data-act="gtile" data-id="${id}" draggable="true" title="${esc(S.names[id])}">
+          <img src="${img(id)}" alt="" loading="lazy" draggable="false"><span class="gfn">${esc(S.names[id])}</span>
+          <span class="gzoom" data-act="gzoom" data-id="${id}" role="button" aria-label="Enlarge" title="Enlarge (Space)">${ZOOM_ICON}</span>
+        </button>` : `<div class="gslot" title="Sorted. Refresh the board (R) to close up the gaps."><span>${banished.has(id) ? "⊘ banished" : `→ ${esc(whereTo.get(id) || "")}`}</span></div>`).join("")}</div></div>
+      <div class="hint">Click: put in the current folder · <kbd>Shift</kbd>-click the first photo, then <kbd>Shift</kbd>-click the last: select everything between · <kbd>Space</kbd>: enlarge · <kbd>R</kbd>: refresh the board · <kbd>Z</kbd> undoes</div>
+    </div>`;
+  } else if (!active.length) {
     body = `<div class="finale"><div class="card">
-      <h3>All ${plural(total, "photo")} are in order</h3>
+      <h3>All ${plural(total, "photo")} are ${S.kind === "folders" ? "sorted" : "in order"}</h3>
       <p>Have a quick look through the full timeline, then export the sorted copies.</p>
       <button class="primary" data-act="review">Review &amp; export →</button>
     </div></div>`;
@@ -1271,8 +1620,8 @@ function renderMerge() {
         ? `<span class="modebar remove" style="--c:var(--remove)"><span><b>Remove mode is on.</b> Click any photo in the strip to send it back down to the board.</span><button class="small" data-act="modeoff">Back to normal <kbd>Esc</kbd></button></span>`
         : S.mode === "banish"
         ? `<span class="modebar banish" style="--c:var(--banish)"><span><b>Banish mode is on.</b> Click any photo, in the strip or on the board, to take it out of the sort. Recover it any time from “Banished”.</span><button class="small" data-act="modeoff">Back to normal <kbd>Esc</kbd></button></span>`
-        : cur
-        ? `<span class="insertbar">New photos go in ${cur.pos === 0 ? "at the very start" : `after #${cur.pos}`}${S.folders.length ? `, into “${esc(S.folders[cur.folder].name)}”` : ""}<button class="small" data-act="clearcursor">Back to the end <kbd>Esc</kbd></button></span>`
+        : banner
+        ? `<span class="insertbar">New photos go in ${banner.pos === 0 ? "at the very start" : `after #${banner.pos}`}${S.folders.length ? `, into “${esc(S.folders[banner.folder].name)}”` : ""}<button class="small" data-act="clearcursor">Back to the end <kbd>Esc</kbd></button></span>`
         : `<span>The green bar shows where the next photo goes. Click any gap to move it there. Drag photos to reorder, or onto the board below to un-place.</span>`}
         <span class="tools">
           <label class="modebox remove ${S.mode === "remove" ? "on" : ""}" style="--c:var(--remove)" title="While ticked, clicking a photo in the strip sends it back to the board"><input type="checkbox" data-act="mode" data-mode="remove" ${S.mode === "remove" ? "checked" : ""}>Remove from timeline</label>
@@ -1308,6 +1657,15 @@ function renderMerge() {
     row.addEventListener("scroll", () => { if (!row._pin && atEnd(row) && !S.cursor) row._pin = "end"; }, {passive: true});
   }
   S.scrollToEnd = false; S.scrollToCursor = false; S.scrollToFolder = undefined; S.keepScroll = false;
+  const grid = document.querySelector(".gscroll");
+  if (grid) {
+    grid.scrollTop = gridScroll;
+    // the photo under the mouse changes when the grid reflows: keep the number keys pointing at it
+    const under = lastMouse && document.elementFromPoint(lastMouse[0], lastMouse[1]);
+    const t = under && under.closest && under.closest(".gtile");
+    S.hoverId = t ? +t.dataset.id : null;
+    armAutoRefresh();
+  }
   const input = document.getElementById("newFolder") || document.getElementById("renameFolder");
   if (input) { input.focus(); input.select(); }
 
@@ -1346,13 +1704,15 @@ function renderReview() {
   <main class="page">
     <div class="review-top">
       <div>
-        <h2>${complete ? "Check the order" : `${merged.length} of ${total} placed so far`}</h2>
-        <p class="intro">Scroll through to make sure it flows. To fix one, drag it to where it belongs, even under a different folder. ${S.folders.length ? "Click a folder's name to rename it. " : ""}For bigger fixes, click the last photo that's still right and choose “Rewind to here”.</p>
+        <h2>${complete ? (S.kind === "folders" ? "Check the folders" : "Check the order") : `${merged.length} of ${total} ${S.kind === "folders" ? "sorted" : "placed"} so far`}</h2>
+        <p class="intro">${S.kind === "folders"
+          ? `Scroll through to check each photo is in the right folder. To fix one, drag it into the right folder. ${S.folders.length ? "Click a folder's name to rename it." : ""}`
+          : `Scroll through to make sure it flows. To fix one, drag it to where it belongs, even under a different folder. ${S.folders.length ? "Click a folder's name to rename it. " : ""}For bigger fixes, click the last photo that's still right and choose “Rewind to here”.`}</p>
         <div class="revrow"><button class="small" data-act="undo" ${S.history.length ? "" : "disabled"}>↶ Undo <kbd>Z</kbd></button>
           <button class="small" data-act="revertreview" ${changed ? "" : "disabled"}>⟲ Revert all changes made on this screen</button>
           <span>${changed ? "Revert puts everything back the way it was when you came here from the Sort tab." : "No changes made on this screen yet."}</span></div>
         ${S.banished.length ? `<div class="revrow"><span>⊘ ${plural(S.banished.length, "banished photo")} won't be exported.</span><button class="small" data-act="showbanished">See them</button></div>` : ""}
-        <div class="legend">${S.lanes.map((l, i) => `<span><span class="dot" style="--c:${LANE_COLORS[i]}"></span>${esc(l.name)}</span>`).join("")}</div>
+        <div class="legend ${S.kind === "folders" ? "hidden" : ""}">${S.lanes.map((l, i) => `<span><span class="dot" style="--c:${LANE_COLORS[i]}"></span>${esc(l.name)}</span>`).join("")}</div>
         ${cells}
       </div>
       <aside class="export">
@@ -1360,20 +1720,25 @@ function renderReview() {
         <div class="field"><label for="outdir">Save to a new folder</label>
           <div class="pathrow"><input type="text" id="outdir" data-act="outdir" value="${esc(S.outdir)}" spellcheck="false"><button class="small" data-act="pickout">Change…</button></div>
           <small>Your originals stay exactly where they are.</small></div>
-        <div class="field"><label for="wdate">Wedding date</label>
+        ${S.kind === "folders" ? `<div class="field"><label>File names</label>
+          <label class="radio"><input type="radio" name="fnm" value="keep" data-act="fnamemode" ${S.fNameMode !== "folder" ? "checked" : ""}> Keep the original names</label>
+          <label class="radio"><input type="radio" name="fnm" value="folder" data-act="fnamemode" ${S.fNameMode === "folder" ? "checked" : ""}> Folder name + number</label>
+          <div class="example" id="example">${esc(example)}</div>
+          <small>Each copy keeps the photo's own date and details.</small></div>`
+        : `<div class="field"><label for="wdate">Wedding date</label>
           <input type="date" id="wdate" data-act="date" value="${esc(S.date)}">
           <small>Each copy gets a capture time 10 seconds after the last, so Lightroom and other apps sort them correctly. The times are made up; only the order is real.</small></div>
         <div class="field"><label>File names</label>
           <label class="radio"><input type="radio" name="nm" value="keep" data-act="namemode" ${S.nameMode !== "custom" ? "checked" : ""}> Number + lab's original name</label>
           <label class="radio"><input type="radio" name="nm" value="custom" data-act="namemode" ${S.nameMode === "custom" ? "checked" : ""}> Number + my own name</label>
           <input type="text" id="prefix" data-act="prefix" placeholder="e.g. Smith Wedding" value="${esc(S.prefix)}" class="${S.nameMode === "custom" ? "" : "hidden"}" style="margin-top:6px">
-          <div class="example" id="example">${esc(example)}</div></div>
+          <div class="example" id="example">${esc(example)}</div></div>`}
         ${complete ? "" : `<label class="radio check"><input type="checkbox" data-act="partial" ${S.partialExport ? "checked" : ""}>
-          <span>Export without the ${plural(total - merged.length, "photo")} still on the board<small>For scrap frames you don't want. They're simply left out; nothing is deleted.</small></span></label>`}
+          <span>Export without the ${plural(total - merged.length, "photo")} still ${S.kind === "folders" ? "unsorted" : "on the board"}<small>For scrap frames you don't want. They're simply left out; nothing is deleted.</small></span></label>`}
         <label class="radio check"><input type="checkbox" data-act="clearprev" ${S.clearPreviews ? "checked" : ""}>
-          <span>Clear this wedding's previews after exporting <span id="wedPrev" class="muted"></span>
-          <small>Roll Merge keeps preview pictures of every photo so they show quickly, and over time they take up space. Ticking this deletes this wedding's previews once the export has finished. Your photos, your progress and the exported copies are not touched.
-          <b>If you'll come back to work on this wedding again, leave it unticked</b>, or clear previews later from the Folder screen.</small></span></label>
+          <span>Clear ${S.kind === "folders" ? "these photos'" : "this wedding's"} previews after exporting <span id="wedPrev" class="muted"></span>
+          <small>${appName()} keeps preview pictures of every photo so they show quickly, and over time they take up space. When ticked, the previews of these photos are deleted once the export has finished. Your photos, your progress and the exported copies are not touched.
+          <b>If you'll come back to work on these photos again, untick it</b>, so they show quickly next time. You can always clear previews later from the Folder screen.</small></span></label>
         <button class="primary bigbtn" data-act="export" ${complete || (S.partialExport && merged.length) ? "" : "disabled"}>${complete ? `Export ${total} copies`
           : S.partialExport ? (merged.length ? `Export ${merged.length} copies, leave out ${total - merged.length}` : "Place at least one photo first")
           : "Place every photo first"}</button>
@@ -1422,7 +1787,8 @@ function renderOverlay() {
   if (overlay.kind === "choice") {
     el.innerHTML = `<div class="choice" role="dialog" aria-modal="true">
       <h3>${esc(overlay.title)}</h3><p>${esc(overlay.text)}</p>
-      ${overlay.options.map((o, i) => `<button class="opt" data-act="choice" data-i="${i}"><b>${esc(o.label)}</b><span>${esc(o.sub || "")}</span></button>`).join("")}
+      ${overlay.list ? `<ul class="warnlist">${overlay.list.map(x => `<li>${x}</li>`).join("")}</ul>` : ""}
+      ${overlay.options.map((o, i) => `<button class="opt ${o.danger ? "danger" : ""}" data-act="choice" data-i="${i}"><b>${esc(o.label)}</b><span>${esc(o.sub || "")}</span></button>`).join("")}
       <button class="ghost cancel" data-act="closeov">Cancel</button></div>`;
     document.body.appendChild(el);
     return;
@@ -1464,9 +1830,12 @@ function openPhotos(list, i, opts) { overlay = Object.assign({kind: "photo", lis
 // ---------------------------------------------------------------- render + events
 async function render() {
   if (stopped) return;
-  if (view === "home" || !S) {
+  if (!APP) view = "choose";
+  if (view === "choose") renderChooser();
+  else if (view === "home" || !S) {
     let recent = [], cache = null;
-    try { [recent, cache] = await Promise.all([api("/api/recent"), api("/api/cache")]); } catch (e) {}
+    try { [recent, cache] = await Promise.all([api(`/api/recent?app=${APP}`), api("/api/cache")]); } catch (e) {}
+    if (view === "choose") return;  // switched while loading
     renderHome(recent, cache);
   }
   else if (view === "setup") renderSetup();
@@ -1476,7 +1845,21 @@ async function render() {
 }
 
 app.addEventListener("click", e => handle(e));
-document.body.addEventListener("click", e => { if (e.target.closest(".overlay")) handle(e); });
+document.body.addEventListener("click", e => {
+  if (!e.target.closest(".overlay")) return;
+  if (overlay && overlay.kind === "photo" && !e.target.closest("[data-act], button") && !onShownImage(e)) return closeOverlay();
+  handle(e);
+});
+// The large photo fills its box with "contain", so the empty bands beside it are still the <img>.
+function onShownImage(e) {
+  const im = e.target.closest(".ov-img img");
+  if (!im || !im.naturalWidth) return false;
+  const b = im.getBoundingClientRect();
+  const k = Math.min(b.width / im.naturalWidth, b.height / im.naturalHeight);
+  const w = im.naturalWidth * k, h = im.naturalHeight * k;
+  const x = b.left + (b.width - w) / 2, y = b.top + (b.height - h) / 2;
+  return e.clientX >= x && e.clientX <= x + w && e.clientY >= y && e.clientY <= y + h;
+}
 app.addEventListener("submit", e => {
   e.preventDefault();
   const act = e.target.dataset.act;
@@ -1516,13 +1899,32 @@ app.addEventListener("input", e => {
   if (act === "outdir") { S.outdir = t.value; save(); }
   if (act === "date") { S.date = t.value; save(); }
   if (act === "prefix") { S.prefix = t.value; save(); updateExample(); }
+  if (act === "gsize") {
+    S.gridSize = +t.value;
+    const g = document.querySelector(".ggrid");
+    if (g) g.style.setProperty("--g", `${S.gridSize}px`);
+    setSetting("grid-size", String(S.gridSize));
+  }
 });
 app.addEventListener("change", e => {
   const t = e.target;
   if (t.dataset.act === "partial") { S.partialExport = t.checked; renderReview(); return; }
+  if (t.dataset.act === "gauto") { setSetting("auto-refresh", t.value); armAutoRefresh(); return; }
+  if (t.dataset.act === "fnamemode") { S.fNameMode = t.value; save(); updateExample(); return; }
   if (t.dataset.act === "clearprev") { S.clearPreviews = t.checked; showWeddingPreviewSize(); return; }
   if (t.dataset.act === "mode") { setMode(t.checked ? t.dataset.mode : null); return; }
   if (t.dataset.act === "namemode") { S.nameMode = t.value; save(); renderReview(); if (t.value === "custom") document.getElementById("prefix").focus(); }
+});
+let lastMouse = null;
+document.addEventListener("mousemove", e => {
+  lastMouse = [e.clientX, e.clientY];
+  if (autoTimer && e.target.closest && e.target.closest(".gridboard")) armAutoRefresh();
+}, {passive: true});
+app.addEventListener("mouseover", e => {
+  if (S && S.kind === "folders" && e.target.closest) {
+    const t = e.target.closest(".gtile");
+    S.hoverId = t ? +t.dataset.id : null;
+  }
 });
 app.addEventListener("mouseover", e => {
   const b = e.target.closest("[data-run]");
@@ -1565,7 +1967,7 @@ function rollDropSpot(e) {
 function photoDropSpot(e) {
   const chip = e.target.closest("[data-dropfolder]");
   if (chip) return {chip, folder: +chip.dataset.dropfolder};
-  const board = e.target.closest(".lanes, .finale");
+  const board = e.target.closest(".lanes, .finale, .gridboard");
   if (board) return {board};
   const row = e.target.closest(".tl-row");
   if (!row) return null;
@@ -1679,7 +2081,9 @@ function endDrag() {
 }
 
 let downOnStripBar = false;
+let downAt = null;  // where the button went down, to tell a wobbly click from a real drag
 app.addEventListener("pointerdown", e => {
+  downAt = {x: e.clientX, y: e.clientY};
   const strip = e.target.closest && e.target.closest(".roll .strip");
   downOnStripBar = !!strip && e.target === strip && e.offsetY >= strip.clientHeight;  // below the photos = the bar
 }, true);
@@ -1689,14 +2093,14 @@ app.addEventListener("dragstart", e => {
   const t = e.target.closest ? e.target : e.target.parentElement;
   const card = view === "setup" && t.closest(".roll[draggable]");
   const photo = view === "merge" && t.closest(".tl-item[draggable]");
-  const fresh = view === "merge" && t.closest(".lane [data-id][draggable]");
+  const fresh = view === "merge" && t.closest(".lane [data-id][draggable], .gtile[data-id]");
   const chip = view === "merge" && t.closest(".chip[data-dropfolder][draggable]");
   const cell = view === "review" && t.closest(".cell[draggable]");
   if (cell) drag = {kind: "review", k: +cell.dataset.k};
   else if (chip) drag = {kind: "folder", i: +chip.dataset.folder};
   else if (card) drag = {kind: "roll", roll: +card.dataset.roll};
   else if (photo) drag = {kind: "photo", k: +photo.dataset.k};
-  else if (fresh) drag = {kind: "board", id: +fresh.dataset.id};
+  else if (fresh) drag = {kind: "board", id: +fresh.dataset.id, grid: fresh.classList.contains("gtile"), from: downAt};
   else return;
   const el = cell || chip || card || photo || fresh;
   if (fresh || cell) smallDragImage(e, el);
@@ -1791,9 +2195,22 @@ app.addEventListener("drop", e => {
   changeSetup(() => { S.lanes.forEach((l, i) => { l.rolls = lanes[i]; }); });
 });
 
-app.addEventListener("dragend", endDrag);
+app.addEventListener("dragend", e => {
+  // Roll Sort board: a press that only wobbled a little and landed nowhere was meant as a click
+  const d = drag;
+  endDrag();
+  if (d && d.grid && d.from && e.dataTransfer.dropEffect === "none" && (e.clientX || e.clientY)
+      && Math.hypot(e.clientX - d.from.x, e.clientY - d.from.y) < 24 && S && view === "merge") gridClick(d.id, e);
+});
 
 function exampleName(merged) {
+  if (S.kind === "folders") {
+    const first = merged.length ? merged[0] : null;
+    const dir = S.folders.length && first ? folderDirName(first.folder) : "";
+    const orig = first ? S.names[first.id].split(/[\\/]/).pop() : "IMG_0001.jpg";
+    const ext = (orig.match(/\.[^.]+$/) || [".jpg"])[0];
+    return (dir ? dir + "/" : "") + (S.fNameMode === "folder" && dir ? `${dir} 001${ext}` : orig);
+  }
   const name = S.nameMode === "custom" && S.prefix.trim()
     ? `${S.prefix.trim()} 0001.jpg`
     : `0001_${merged.length ? S.names[merged[0].id] : "000180620026.jpg"}`;
@@ -1879,7 +2296,16 @@ async function handle(e) {
     case "recover": return recover(+d.id);
     case "recoverall": return recoverAll();
     case "revertreview": return revertReview();
+    case "switchapp": return showChooser();
+    case "pickapp": return pickApp(d.app);
+    case "gtile": return gridClick(+d.id, e);
+    case "gzoom": return enlargeFromGrid(+d.id);
+    case "gsend": return placeIds([...S.sel]);
+    case "gclear": return clearSelection();
+    case "gselall": boardSlots().visible.forEach(id => S.sel.add(id)); return refreshGridSelection();
+    case "grefresh": return refreshBoard();
     case "clearcache": return clearCache();
+    case "resetall": return resetEverything();
     case "viewmerged": {
       if (view === "merge" && S.mode === "remove") return sendToBoard(+d.k);
       if (view === "merge" && S.mode === "banish") return banishPlaced(+d.k);
@@ -1892,7 +2318,7 @@ async function handle(e) {
       if (after > 0 && !confirm(`Keep photos 1–${k + 1} and un-place the ${plural(after, "photo")} after it?`)) return;
       rewindTo(k); overlay = null; return goTo("merge");
     }
-    case "closeov": overlay = overlay && overlay.back ? overlay.back : null; return renderOverlay();
+    case "closeov": return closeOverlay();
     case "ovprev": if (overlay.i > 0) { overlay.i--; renderOverlay(); } return;
     case "ovnext": if (overlay.i < overlay.list.length - 1) { overlay.i++; renderOverlay(); } return;
     case "pickout": {
@@ -1911,7 +2337,7 @@ async function handle(e) {
 document.addEventListener("keydown", e => {
   if (stopped || (e.target.matches && e.target.matches("input, textarea"))) return;
   if (overlay) {
-    if (e.key === "Escape") { overlay = overlay.back || null; renderOverlay(); }
+    if (e.key === "Escape") closeOverlay();
     else if (overlay.kind === "choice") return;
     else if (overlay.kind === "banished" && (e.key === "z" || e.key === "Z") && !e.metaKey && !e.ctrlKey && !e.altKey) undo();
     else if (e.key === "ArrowLeft" && overlay.kind === "photo" && overlay.i > 0) { overlay.i--; renderOverlay(); }
@@ -1920,11 +2346,24 @@ document.addEventListener("keydown", e => {
     e.preventDefault(); return;
   }
   if (view === "review" && S && !e.metaKey && !e.ctrlKey && !e.altKey && (e.key === "z" || e.key === "Z")) { e.preventDefault(); undo(); return; }
+  if (view === "merge" && S && S.kind === "folders" && !S.mode && (e.ctrlKey || e.metaKey) && (e.key === "a" || e.key === "A")) {
+    e.preventDefault(); boardSlots().visible.forEach(id => S.sel.add(id)); refreshGridSelection(); return;
+  }
   if (view !== "merge" || !S || e.metaKey && e.key !== "z" || e.ctrlKey && e.key !== "z" || e.altKey) return;
   if (S.mode) {
     if (e.key === "Escape") { e.preventDefault(); setMode(null); return; }
     if (e.key === "z" || e.key === "Z" || e.key === "Backspace") { e.preventDefault(); undo(); return; }
     if (/^[1-4]$/.test(e.key) || e.key === "ArrowLeft" || e.key === "ArrowRight" || e.key === "Enter") { e.preventDefault(); toast(modeBlocked(), 3500); }
+    return;
+  }
+  if (S.kind === "folders") {
+    if (autoTimer) armAutoRefresh();
+    if ((e.key === "r" || e.key === "R") && boardSlots().gaps) { e.preventDefault(); refreshBoard(); return; }
+    if (e.key === "Enter" && S.sel.size) { e.preventDefault(); placeIds([...S.sel]); return; }
+    if (e.key === " " && S.hoverId !== null) { e.preventDefault(); enlargeFromGrid(S.hoverId); return; }
+    if (e.key === "Escape" && S.sel.size) { clearSelection(); return; }
+    if (e.key === "z" || e.key === "Z" || e.key === "Backspace") { e.preventDefault(); undo(); return; }
+    if (e.key === "Escape" && S.cursor) { S.cursor = null; save(); render(); }
     return;
   }
   const {next} = derive();
@@ -1947,8 +2386,11 @@ document.addEventListener("keydown", e => {
 
 // start
 if (!TOKEN) app.innerHTML = `<div class="stopped"><p>Open Roll Merge with its Start file, not this page directly.</p></div>`;
-else if (params.get("open")) openFolder(params.get("open"));
-else render();
+else {
+  if (APP) document.title = appName();
+  if (params.get("open") && APP) openFolder(params.get("open"));
+  else { pendingOpen = params.get("open") || null; render(); }
+}
 </script>
 </body>
 </html>

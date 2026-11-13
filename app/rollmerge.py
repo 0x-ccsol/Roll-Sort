@@ -76,29 +76,70 @@ def norm_root(path):
     return os.path.normcase(os.path.abspath(path))
 
 
-def state_path(root):
-    return os.path.join(STATES, sha1(norm_root(root)) + ".json")
+# Roll Merge is two apps that never share progress: "merge" (film rolls from several cameras)
+# and "sort" (one batch of photos into folders, shown as Roll Sort). The same folder can have
+# separate progress in each.
+APPS = ("merge", "sort")
 
 
-def load_state(root):
+def clean_app(app):
+    return app if app in APPS else "merge"
+
+
+def state_path(root, app="merge"):
+    key = norm_root(root) if clean_app(app) == "merge" else norm_root(root) + "|sort"
+    return os.path.join(STATES, sha1(key) + ".json")
+
+
+def state_app(st):
+    return "sort" if st.get("kind") == "folders" else "merge"
+
+
+def load_state(root, app="merge"):
     try:
-        with open(state_path(root), "r", encoding="utf-8") as fh:
-            return json.load(fh)
+        with open(state_path(root, app), "r", encoding="utf-8") as fh:
+            st = json.load(fh)
     except (OSError, ValueError):
         return None
+    return st if state_app(st) == clean_app(app) else None
 
 
-def save_state(root, state):
+def split_old_states():
+    """Saves from before the two apps were split kept Sort progress under the Merge key. Move them."""
+    try:
+        names = os.listdir(STATES)
+    except OSError:
+        return
+    for name in names:
+        if not name.endswith(".json"):
+            continue
+        path = os.path.join(STATES, name)
+        try:
+            with open(path, "r", encoding="utf-8") as fh:
+                st = json.load(fh)
+            root = st.get("root")
+            if not root or state_app(st) != "sort" or path == state_path(root, "sort"):
+                continue
+            if os.path.exists(state_path(root, "sort")):
+                continue
+            os.replace(path, state_path(root, "sort"))
+        except (OSError, ValueError, AttributeError):
+            continue
+
+
+def save_state(root, state, app="merge"):
     state["root"] = root
     state["updated"] = time.time()
-    path = state_path(root)
+    state["kind"] = "folders" if clean_app(app) == "sort" else "merge"
+    path = state_path(root, app)
     tmp = path + ".tmp"
     with open(tmp, "w", encoding="utf-8") as fh:
         json.dump(state, fh)
     os.replace(tmp, path)
 
 
-def recent_folders():
+def recent_folders(app="merge"):
+    app = clean_app(app)
     out = []
     for name in os.listdir(STATES):
         if not name.endswith(".json"):
@@ -109,13 +150,14 @@ def recent_folders():
         except (OSError, ValueError):
             continue
         root = st.get("root")
-        if not root or not os.path.isdir(root):
+        if not root or state_app(st) != app or not os.path.isdir(root):
             continue
         total = sum(r.get("count", 0) for lane in st.get("lanes", []) for r in lane.get("rolls", []))
+        total -= len(st.get("banished") or [])
         out.append({
             "root": root,
             "name": os.path.basename(root.rstrip("/\\")) or root,
-            "placed": len(st.get("seq", [])),
+            "placed": len(st.get("order") or st.get("seq") or []),
             "total": total,
             "updated": st.get("updated", 0),
         })
@@ -424,7 +466,17 @@ def copy_jpeg_with_time(src, dst, when):
 JOBS = {}
 
 
-def run_export(job, items, outdir, date_text, prefix, clear_after=None):
+def free_name(folder, name):
+    """name, or "name (2)", "name (3)" ... if that file already exists in folder."""
+    stem, ext = os.path.splitext(name)
+    candidate, n = name, 1
+    while os.path.exists(os.path.join(folder, candidate)):
+        n += 1
+        candidate = "%s (%d)%s" % (stem, n, ext)
+    return candidate
+
+
+def run_export(job, items, outdir, date_text, prefix, clear_after=None, kind="merge", naming="keep"):
     try:
         try:
             day = datetime.strptime(date_text, "%Y-%m-%d")
@@ -439,6 +491,30 @@ def run_export(job, items, outdir, date_text, prefix, clear_after=None):
         prefix = safe_name_part(prefix or "")
         log_rows = ["folder,new_name,camera,roll,original_file"]
         exif_skipped = 0
+        if kind == "folders":
+            # Sort-into-folders mode: plain copies that keep each photo's own date and details,
+            # named as they were or "<Folder> 001", numbered per folder.
+            per_folder = {}
+            for item in items:
+                per_folder[item.get("folder", "")] = per_folder.get(item.get("folder", ""), 0) + 1
+            counters = {}
+            for i, item in enumerate(items):
+                src = item["path"]
+                folder = item.get("folder", "")
+                ext = os.path.splitext(src)[1]
+                target_dir = os.path.join(outdir, folder) if folder else outdir
+                os.makedirs(target_dir, exist_ok=True)
+                if naming == "folder" and folder:
+                    counters[folder] = counters.get(folder, 0) + 1
+                    width = max(3, len(str(per_folder[folder])))
+                    wanted = "%s %s%s" % (folder, str(counters[folder]).zfill(width), ext)
+                else:
+                    wanted = os.path.basename(src)
+                new_name = free_name(target_dir, wanted)
+                shutil.copy2(src, os.path.join(target_dir, new_name))
+                log_rows.append(",".join('"%s"' % str(v).replace('"', "'") for v in (folder, new_name, item["lane"], item["roll"], src)))
+                job["done"] = i + 1
+            items = []  # done: skip the wedding-style copying below
         for i, item in enumerate(items):
             src = item["path"]
             stem, ext = os.path.splitext(os.path.basename(src))
@@ -534,6 +610,7 @@ class Session:
         self.lock = threading.Lock()
         self.gen = 0
         self.root = None
+        self.app = "merge"
         self.rolls = []
         self.files = []
 
@@ -543,7 +620,37 @@ PREFETCH = Prefetcher()
 TOKEN = secrets.token_urlsafe(16)
 
 
-def open_folder(path):
+def reset_everything(app="all"):
+    """Forget what one app ("sort" / "merge") or both ("all") has saved: every folder's progress,
+    plus all previews. Photos and exported copies are never touched.
+    Returns (folders forgotten, preview bytes freed)."""
+    with SESSION.lock:  # close the open folder, so nothing gets saved for it afterwards
+        SESSION.gen += 1
+        SESSION.root = None
+        SESSION.rolls = []
+        SESSION.files = []
+    PREFETCH.gen = -1  # stop making previews for it in the background
+    forgotten = 0
+    for name in os.listdir(STATES):
+        path = os.path.join(STATES, name)
+        if app != "all":
+            try:
+                with open(path, "r", encoding="utf-8") as fh:
+                    if state_app(json.load(fh)) != app:
+                        continue
+            except (OSError, ValueError, AttributeError):
+                continue
+        try:
+            os.remove(path)
+            forgotten += name.endswith(".json")
+        except OSError:
+            pass
+    freed = clear_previews()[0]
+    return forgotten, freed
+
+
+def open_folder(path, app="merge"):
+    app = clean_app(app)
     path = os.path.abspath(os.path.expanduser(path.strip().strip('"').strip("'")))
     if not os.path.isdir(path):
         raise ValueError("That folder doesn't exist: %s" % path)
@@ -551,6 +658,7 @@ def open_folder(path):
     with SESSION.lock:
         SESSION.gen += 1
         SESSION.root = path
+        SESSION.app = app
         SESSION.rolls = rolls
         SESSION.files = files
         gen = SESSION.gen
@@ -563,10 +671,19 @@ def open_folder(path):
         "gen": gen,
         "rolls": rolls,
         "names": [os.path.basename(f) for f in files],
-        "saved": load_state(path),
+        "saved": load_state(path, app),
         "defaultOutdir": os.path.join(parent, root_name + " (sorted)"),
         "today": datetime.now().strftime("%Y-%m-%d"),
     }
+
+
+class QuietServer(ThreadingHTTPServer):
+    """Don't print alarming tracebacks in the small window when the browser drops a connection."""
+
+    def handle_error(self, request, client_address):
+        if isinstance(sys.exc_info()[1], ConnectionError):
+            return
+        super().handle_error(request, client_address)
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -577,15 +694,17 @@ class Handler(BaseHTTPRequestHandler):
 
     # -- helpers
     def _send(self, code, body, ctype, extra=None):
-        self.send_response(code)
-        self.send_header("Content-Type", ctype)
-        self.send_header("Content-Length", str(len(body)))
-        for k, v in (extra or {}).items():
-            self.send_header(k, v)
-        self.end_headers()
+        # The browser may give up on a reply (e.g. a preview it no longer needs). That's normal:
+        # ConnectionError covers the Mac/Linux and Windows versions of it.
         try:
+            self.send_response(code)
+            self.send_header("Content-Type", ctype)
+            self.send_header("Content-Length", str(len(body)))
+            for k, v in (extra or {}).items():
+                self.send_header(k, v)
+            self.end_headers()
             self.wfile.write(body)
-        except (BrokenPipeError, ConnectionResetError):
+        except ConnectionError:
             pass
 
     def _json(self, obj, code=200):
@@ -613,7 +732,7 @@ class Handler(BaseHTTPRequestHandler):
             job = JOBS.get(q.get("id", [""])[0])
             return self._json(job or {"error": "unknown job"})
         if url.path == "/api/recent":
-            return self._json(recent_folders())
+            return self._json(recent_folders(q.get("app", [""])[0]))
         if url.path == "/api/cache":
             if q.get("scope", [""])[0] == "wedding":
                 with SESSION.lock:
@@ -665,7 +784,7 @@ class Handler(BaseHTTPRequestHandler):
 
         if path == "/api/open":
             try:
-                return self._json(open_folder(body.get("path") or ""))
+                return self._json(open_folder(body.get("path") or "", body.get("app")))
             except ValueError as exc:
                 return self._error(str(exc))
 
@@ -673,7 +792,9 @@ class Handler(BaseHTTPRequestHandler):
             root = body.get("root")
             if not root or norm_root(root) != norm_root(SESSION.root or ""):
                 return self._error("folder not open")
-            save_state(SESSION.root, body.get("state") or {})
+            if clean_app(body.get("app")) != SESSION.app:
+                return self._error("folder not open")
+            save_state(SESSION.root, body.get("state") or {}, SESSION.app)
             return self._json({"ok": True})
 
         if path == "/api/export":
@@ -708,9 +829,17 @@ class Handler(BaseHTTPRequestHandler):
             job_id = secrets.token_hex(6)
             job = JOBS[job_id] = {"done": 0, "total": len(items), "finished": False, "error": None, "outdir": outdir}
             clear_after = files if body.get("clearPreviews") else None  # every photo of this wedding
-            threading.Thread(target=run_export, args=(job, items, outdir, body.get("date"), body.get("prefix"), clear_after),
+            kind = "folders" if body.get("kind") == "folders" else "merge"
+            naming = "folder" if body.get("naming") == "folder" else "keep"
+            threading.Thread(target=run_export, args=(job, items, outdir, body.get("date"), body.get("prefix"), clear_after,
+                                                      kind, naming),
                              daemon=True).start()
             return self._json({"job": job_id})
+
+        if path == "/api/reset":
+            which = body.get("app")
+            forgotten, freed = reset_everything(which if which in APPS else "all")
+            return self._json({"forgotten": forgotten, "freed": freed})
 
         if path == "/api/clear-cache":
             freed, count = clear_previews()
@@ -744,9 +873,10 @@ def free_port(preferred=8765):
 def main():
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
     no_browser = "--no-browser" in sys.argv
+    split_old_states()
     threading.Thread(target=clean_old_thumbs, daemon=True).start()
     port = free_port()
-    server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
+    server = QuietServer(("127.0.0.1", port), Handler)
     server.daemon_threads = True
     url = "http://127.0.0.1:%d/?t=%s" % (port, TOKEN)
     if args:
