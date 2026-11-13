@@ -1,6 +1,6 @@
 @echo off
-rem Double-click to start Roll Merge on Windows.
-title Roll Merge
+rem Double-click to start Roll Sort on Windows.
+title Roll Sort
 cd /d "%~dp0"
 
 where py >nul 2>nul
@@ -15,7 +15,7 @@ if %errorlevel%==0 (
 )
 
 echo.
-echo   Roll Merge needs Python 3, which isn't installed yet.
+echo   Roll Sort needs Python 3, which isn't installed yet.
 echo   Opening the download page: install it (tick "Add python.exe to PATH"),
 echo   then double-click this file again.
 echo.

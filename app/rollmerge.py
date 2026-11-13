@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-Roll Merge: put film scans from several cameras back into shooting order.
+Roll Sort: sort a batch of photos into folders (Roll Sort), or put film scans from several
+cameras back into shooting order (Roll Merge).
 
 Each roll from the lab is already in order (frame 1, 2, 3...). The only
 question is how the rolls from different cameras interleave, so this tool
@@ -432,7 +433,7 @@ def unique_folder(path):
 def mark_output_folder(folder):
     marker = os.path.join(folder, OUTPUT_MARKER)
     with open(marker, "w", encoding="utf-8") as fh:
-        fh.write("Folder created by Roll Merge. Safe to delete.\n")
+        fh.write("Folder created by Roll Sort. Safe to delete.\n")
     if os.name == "nt":
         try:
             import ctypes
@@ -538,7 +539,7 @@ def run_export(job, items, outdir, date_text, prefix, clear_after=None, kind="me
             os.utime(dst, (ts, ts))
             log_rows.append(",".join('"%s"' % str(v).replace('"', "'") for v in (item.get("folder", ""), new_name, item["lane"], item["roll"], src)))
             job["done"] = i + 1
-        with open(os.path.join(outdir, "Roll Merge order.csv"), "w", encoding="utf-8") as fh:
+        with open(os.path.join(outdir, "Roll Sort order.csv" if kind == "folders" else "Roll Merge order.csv"), "w", encoding="utf-8") as fh:
             fh.write("\n".join(log_rows) + "\n")
         job["exif_skipped"] = exif_skipped
         if clear_after:
@@ -882,7 +883,7 @@ def main():
     if args:
         url += "&open=" + quote(os.path.abspath(args[0]), safe="")
     print("")
-    print("  Roll Merge is running.")
+    print("  Roll Sort is running.")
     print("  If your browser didn't open, copy this link into it:")
     print("  " + url)
     print("")
@@ -895,7 +896,7 @@ def main():
         server.serve_forever()
     except KeyboardInterrupt:
         pass
-    print("  Roll Merge has stopped.")
+    print("  Roll Sort has stopped.")
 
 
 if __name__ == "__main__":

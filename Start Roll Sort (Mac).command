@@ -1,10 +1,10 @@
 #!/bin/bash
-# Double-click to start Roll Merge on a Mac.
+# Double-click to start Roll Sort on a Mac.
 cd "$(dirname "$0")" || exit 1
 
 if ! command -v python3 >/dev/null 2>&1; then
   echo ""
-  echo "  Roll Merge needs Python 3, which isn't installed yet."
+  echo "  Roll Sort needs Python 3, which isn't installed yet."
   echo "  Opening the download page: install it, then double-click this file again."
   echo ""
   open "https://www.python.org/downloads/macos/"

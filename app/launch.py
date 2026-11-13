@@ -1,5 +1,5 @@
 """
-Starts Roll Merge. On the first run it sets up a private Python environment
+Starts Roll Sort (which includes Roll Merge). On the first run it sets up a private Python environment
 next to the app (needs internet once, takes about a minute), then reuses it.
 Only uses the standard library, so it runs before anything is installed.
 """
@@ -29,7 +29,7 @@ def setup():
     py = env_python()
     if os.path.exists(py) and ready(py):
         return py
-    print("\n  First-time setup: installing what Roll Merge needs (about a minute, needs internet)...\n")
+    print("\n  First-time setup: installing what Roll Sort needs (about a minute, needs internet)...\n")
     if not os.path.exists(py):
         venv.create(ENV, with_pip=True, clear=True)
     subprocess.check_call([py, "-m", "pip", "install", "--disable-pip-version-check", "-q", "-r", REQS])
@@ -39,7 +39,7 @@ def setup():
 
 def main():
     if sys.version_info < (3, 8):
-        print("Roll Merge needs Python 3.8 or newer. Get it from https://www.python.org/downloads/")
+        print("Roll Sort needs Python 3.8 or newer. Get it from https://www.python.org/downloads/")
         return 1
     try:
         py = setup()

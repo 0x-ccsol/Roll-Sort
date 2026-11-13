@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Roll Merge</title>
+<title>Roll Sort</title>
 <style>
 :root {
   --bg: #121212;
@@ -489,7 +489,7 @@ async function api(path, body) {
     });
   } catch (e) {
     if (!quitting) showStopped(false);
-    throw new Error("Roll Merge isn't running. Start it again from its folder.");
+    throw new Error(`${appName()} isn't running. Start it again from its folder.`);
   }
   if (res.status === 403 && !quitting) showStopped(true);  // this tab belongs to an earlier run of Roll Merge
   const data = await res.json().catch(() => ({}));
@@ -1190,7 +1190,7 @@ function renderChooser() {
       ${a === APP && S ? `<span class="inuse">Open now</span>` : ""}${logo(a)}<b>${appName(a)}</b>
       <span class="what">${what}</span><span class="eg">${eg}</span>
       <span class="go">${a === APP && S ? `Back to ${esc(S.rootName)} →` : `Use ${appName(a)} →`}</span></button>`;
-  app.innerHTML = `<div class="bar"><span class="spacer"></span><button class="ghost small" data-act="quit" title="Stop Roll Merge">Quit</button></div>
+  app.innerHTML = `<div class="bar"><span class="spacer"></span><button class="ghost small" data-act="quit" title="Stop Roll Sort">Quit</button></div>
   <main class="chooser">
     <h1>What would you like to do?</h1>
     <p class="lead">Your original photos are never changed. Copies are made when you export.</p>
@@ -1273,8 +1273,8 @@ function showStopped(oldTab) {
     <p class="stopped-title">${oldTab ? `This tab is from an earlier session of ${appName()}.` : `${appName()} has stopped running.`}</p>
     <p>${oldTab ? `${appName()} has been started again since this tab was opened, so it can't save from here.`
                 : "It may have been closed, or the computer went to sleep. Your progress up to the last change was saved."}</p>
-    <p>${oldTab ? "Close this tab and use the newer Roll Merge tab instead. If you can't find it, double-click <b>Start Roll Merge</b> again."
-                : "Close this tab, then double-click <b>Start Roll Merge</b> again."} You'll carry on from where you were.</p></div></div>`;
+    <p>${oldTab ? "Close this tab and use the newer tab instead. If you can't find it, double-click <b>Start Roll Sort</b> again."
+                : "Close this tab, then double-click <b>Start Roll Sort</b> again."} You'll carry on from where you were.</p></div></div>`;
   renderOverlay();
 }
 
@@ -2385,7 +2385,7 @@ document.addEventListener("keydown", e => {
 });
 
 // start
-if (!TOKEN) app.innerHTML = `<div class="stopped"><p>Open Roll Merge with its Start file, not this page directly.</p></div>`;
+if (!TOKEN) app.innerHTML = `<div class="stopped"><p>Open Roll Sort with its Start file, not this page directly.</p></div>`;
 else {
   if (APP) document.title = appName();
   if (params.get("open") && APP) openFolder(params.get("open"));
