@@ -12,6 +12,7 @@ export writes renamed copies to a new folder.
 """
 
 import hashlib
+from contextlib import contextmanager
 import json
 import os
 import re
@@ -124,6 +125,11 @@ def recent_folders():
 
 def clean_old_thumbs(max_age_days=45):
     cutoff = time.time() - max_age_days * 86400
+    with CACHE_GATE.clear():
+        _clean_old(cutoff)
+
+
+def _clean_old(cutoff):
     for dirpath, _dirs, files in os.walk(THUMBS):
         for f in files:
             p = os.path.join(dirpath, f)
@@ -192,6 +198,46 @@ def scan(root, max_depth=3):
 
 # ---------------------------------------------------------------- thumbnails
 
+class CacheGate:
+    """Previews may be made or read by many threads at once ("use"). Clearing ("clear") waits for
+    those to finish and holds new ones back until it is done, so the two never collide."""
+
+    def __init__(self):
+        self._cond = threading.Condition()
+        self._users = 0
+        self._clearing = False
+
+    @contextmanager
+    def use(self):
+        with self._cond:
+            while self._clearing:
+                self._cond.wait()
+            self._users += 1
+        try:
+            yield
+        finally:
+            with self._cond:
+                self._users -= 1
+                self._cond.notify_all()
+
+    @contextmanager
+    def clear(self):
+        with self._cond:
+            while self._clearing:
+                self._cond.wait()
+            self._clearing = True
+            while self._users:
+                self._cond.wait()
+        try:
+            yield
+        finally:
+            with self._cond:
+                self._clearing = False
+                self._cond.notify_all()
+
+
+CACHE_GATE = CacheGate()
+
 _key_locks = {}
 _key_locks_guard = threading.Lock()
 _decode_slots = threading.BoundedSemaphore(max(2, min(4, (os.cpu_count() or 2))))
@@ -213,11 +259,15 @@ def _to_rgb(im):
     return im.convert("RGB")
 
 
-def thumbnail(path, size_key):
+def thumb_file(path, size_key):
     st = os.stat(path)
     key = sha1("%s|%d|%d|%s|v1" % (path, st.st_size, st.st_mtime_ns, size_key))
-    folder = os.path.join(THUMBS, key[:2])
-    out = os.path.join(folder, key + ".jpg")
+    return key, os.path.join(THUMBS, key[:2], key + ".jpg")
+
+
+def thumbnail(path, size_key):
+    key, out = thumb_file(path, size_key)
+    folder = os.path.dirname(out)
     if os.path.exists(out):
         return out
     with _lock_for(key):
@@ -238,6 +288,65 @@ def thumbnail(path, size_key):
     return out
 
 
+def thumbnail_bytes(path, size_key):
+    """Make (if needed) and read one preview, safely alongside cache clearing."""
+    with CACHE_GATE.use():
+        with open(thumbnail(path, size_key), "rb") as fh:
+            return fh.read()
+
+
+def cache_usage(paths=None):
+    """Bytes and files used by previews: all of them, or only those of the given photos."""
+    total = count = 0
+    if paths is None:
+        for dirpath, _dirs, files in os.walk(THUMBS):
+            for f in files:
+                try:
+                    total += os.path.getsize(os.path.join(dirpath, f)); count += 1
+                except OSError:
+                    pass
+        return total, count
+    for path in paths:
+        for size_key in THUMB_SIZES:
+            try:
+                total += os.path.getsize(thumb_file(path, size_key)[1]); count += 1
+            except OSError:
+                pass
+    return total, count
+
+
+def clear_previews(paths=None):
+    """Delete previews (all, or only those of the given photos). Returns (bytes freed, files)."""
+    freed = count = 0
+    with CACHE_GATE.clear():
+        if paths is None:
+            targets = []
+            for dirpath, _dirs, files in os.walk(THUMBS):
+                targets += [os.path.join(dirpath, f) for f in files]
+        else:
+            targets = []
+            for path in paths:
+                for size_key in THUMB_SIZES:
+                    try:
+                        targets.append(thumb_file(path, size_key)[1])
+                    except OSError:
+                        pass
+        for t in targets:
+            try:
+                size = os.path.getsize(t)
+                os.remove(t)
+                freed += size; count += 1
+            except OSError:
+                pass
+        if paths is None:  # tidy away the empty sub-folders too
+            for name in os.listdir(THUMBS):
+                try:
+                    os.rmdir(os.path.join(THUMBS, name))
+                except OSError:
+                    pass
+    return freed, count
+
+
 class Prefetcher:
     """Builds small thumbnails in the background so browsing feels instant."""
 
@@ -254,7 +363,8 @@ class Prefetcher:
         if gen != self.gen:
             return
         try:
-            thumbnail(path, "t")
+            with CACHE_GATE.use():
+                thumbnail(path, "t")
         except Exception:
             pass
 
@@ -314,7 +424,7 @@ def copy_jpeg_with_time(src, dst, when):
 JOBS = {}
 
 
-def run_export(job, items, outdir, date_text, prefix):
+def run_export(job, items, outdir, date_text, prefix, clear_after=None):
     try:
         try:
             day = datetime.strptime(date_text, "%Y-%m-%d")
@@ -355,6 +465,11 @@ def run_export(job, items, outdir, date_text, prefix):
         with open(os.path.join(outdir, "Roll Merge order.csv"), "w", encoding="utf-8") as fh:
             fh.write("\n".join(log_rows) + "\n")
         job["exif_skipped"] = exif_skipped
+        if clear_after:
+            try:
+                job["previews_freed"] = clear_previews(clear_after)[0]
+            except Exception:
+                job["previews_freed"] = None
         job["finished"] = True
     except Exception as exc:
         job["error"] = str(exc)
@@ -499,6 +614,14 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(job or {"error": "unknown job"})
         if url.path == "/api/recent":
             return self._json(recent_folders())
+        if url.path == "/api/cache":
+            if q.get("scope", [""])[0] == "wedding":
+                with SESSION.lock:
+                    files = list(SESSION.files)
+                total, count = cache_usage(files)
+            else:
+                total, count = cache_usage()
+            return self._json({"bytes": total, "files": count})
         return self._error("not found", 404)
 
     def _image(self, q):
@@ -513,9 +636,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self._error("not found", 404)
             path = SESSION.files[idx]
         try:
-            thumb = thumbnail(path, size)
-            with open(thumb, "rb") as fh:
-                body = fh.read()
+            body = thumbnail_bytes(path, size)
         except Exception as exc:
             return self._error("Couldn't read %s: %s" % (os.path.basename(path), exc), 500)
         self._send(200, body, "image/jpeg", {"Cache-Control": "private, max-age=86400"})
@@ -586,9 +707,14 @@ class Handler(BaseHTTPRequestHandler):
                 return self._error("Please save the copies to a different folder from the originals.")
             job_id = secrets.token_hex(6)
             job = JOBS[job_id] = {"done": 0, "total": len(items), "finished": False, "error": None, "outdir": outdir}
-            threading.Thread(target=run_export, args=(job, items, outdir, body.get("date"), body.get("prefix")),
+            clear_after = files if body.get("clearPreviews") else None  # every photo of this wedding
+            threading.Thread(target=run_export, args=(job, items, outdir, body.get("date"), body.get("prefix"), clear_after),
                              daemon=True).start()
             return self._json({"job": job_id})
+
+        if path == "/api/clear-cache":
+            freed, count = clear_previews()
+            return self._json({"freed": freed, "files": count})
 
         if path == "/api/reveal":
             target = body.get("path") or ""

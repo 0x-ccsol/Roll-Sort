@@ -85,6 +85,12 @@ kbd {
 .tip { font-size: 13px; color: var(--muted); margin-top: 8px; }
 .err { color: var(--danger); margin-top: 12px; }
 .recent { margin-top: 44px; }
+.cachebox { margin-top: 36px; display: flex; align-items: center; gap: 16px; justify-content: space-between; padding: 14px 16px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
+.cachebox b { font-size: 14px; }
+.cachebox .size { font: 13px var(--mono); color: var(--accent); margin-left: 8px; }
+.cachebox small { display: block; color: var(--muted); font-size: 12px; margin-top: 3px; }
+.cachebox button { flex: none; }
 .recent h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; margin: 0 0 10px; }
 .recent button {
   display: flex; width: 100%; justify-content: space-between; text-align: left; margin-bottom: 6px; padding: 10px 14px;
@@ -389,6 +395,11 @@ const ZOOM_ICON = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" s
 function esc(s) { return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 function img(id, size) { return `/img?t=${encodeURIComponent(TOKEN)}&g=${S.gen}&id=${id}&s=${size || "t"}`; }
 function range(start, n) { return Array.from({length: n}, (_, i) => start + i); }
+function fmtBytes(n) {
+  if (n < 1e6) return `${Math.max(1, Math.round(n / 1e3))} KB`;
+  if (n < 1e9) return `${n < 1e7 ? (n / 1e6).toFixed(1) : Math.round(n / 1e6)} MB`;
+  return `${(n / 1e9).toFixed(1)} GB`;
+}
 function plural(n, word) { return `${n} ${word}${n === 1 ? "" : "s"}`; }
 function shortName(name) { const stem = name.replace(/\.[^.]+$/, ""); return stem.length > 12 ? "…" + stem.slice(-6) : stem; }
 
@@ -946,7 +957,7 @@ async function doExport() {
   const order = merged.map(m => ({id: m.id, lane: S.lanes[m.lane].name, roll: S.rolls[rollOf(m.id)].name,
                                   folder: S.folders.length ? folderDirName(m.folder) : ""}));
   try {
-    const r = await api("/api/export", {gen: S.gen, order, outdir: S.outdir, date: S.date, prefix: S.nameMode === "custom" ? S.prefix : "", partial, banished: S.banished});
+    const r = await api("/api/export", {gen: S.gen, order, outdir: S.outdir, date: S.date, prefix: S.nameMode === "custom" ? S.prefix : "", partial, banished: S.banished, clearPreviews: !!S.clearPreviews});
     exportJob = {id: r.job, done: 0, total: order.length, finished: false, leftOut: total - order.length};
     render(); pollJob();
   } catch (e) { exportJob = {error: e.message, finished: true}; render(); }
@@ -1003,7 +1014,7 @@ function topBar(extra) {
   </div>`;
 }
 
-function renderHome(recent) {
+function renderHome(recent, cache) {
   app.innerHTML = topBar() + `
   <main class="home">
     ${S ? (() => { const {merged, total} = derive(); const back = TABS.find(t => t[0] === (S.lastView || "setup")) || TABS[1];
@@ -1024,7 +1035,30 @@ function renderHome(recent) {
         <span><b>${esc(r.name)}</b><div class="path">${esc(r.root)}</div></span>
         <span class="muted">${r.total ? (r.placed >= r.total ? "done" : `${r.placed} / ${r.total}`) : ""}</span>
       </button>`).join("")}</div>` : ""}
+    ${cache ? `<div class="cachebox"><div><b>Preview pictures</b><span class="size">${cache.bytes ? fmtBytes(cache.bytes) : "none stored"}</span>
+        <small>Small copies of your photos that Roll Merge makes so they show quickly. Old ones are deleted automatically after 45 days.</small></div>
+      <button class="small" data-act="clearcache" ${cache.bytes ? "" : "disabled"}>Clear previews…</button></div>` : ""}
   </main>`;
+}
+
+async function clearCache() {
+  let cache;
+  try { cache = await api("/api/cache"); } catch (e) { return toast(e.message); }
+  if (!cache.bytes) { toast("There are no previews to clear."); return render(); }
+  const size = fmtBytes(cache.bytes);
+  overlay = {kind: "choice", title: `Clear ${size} of preview pictures?`,
+    text: `Previews are small copies of your photos that Roll Merge makes so they show quickly. Over time they add up and take space you may not want to lose. Clearing them frees about ${size}. ` +
+          `Your photos, your sorting progress and any exported copies are not touched. Roll Merge makes previews again whenever it needs them, ` +
+          `so the next time you open a wedding its photos may take a little longer to appear${S ? " (that includes the wedding that's open now)" : ""}.`,
+    options: [{value: "yes", label: `Clear ${size} of previews`, sub: "Safe to do at any time."}],
+    onPick: async () => {
+      try {
+        const r = await api("/api/clear-cache", {});
+        toast(`Cleared ${fmtBytes(r.freed)} of preview pictures.`, 3500);
+      } catch (e) { toast(e.message); }
+      render();
+    }};
+  renderOverlay();
 }
 
 function renderSetup() {
@@ -1336,6 +1370,10 @@ function renderReview() {
           <div class="example" id="example">${esc(example)}</div></div>
         ${complete ? "" : `<label class="radio check"><input type="checkbox" data-act="partial" ${S.partialExport ? "checked" : ""}>
           <span>Export without the ${plural(total - merged.length, "photo")} still on the board<small>For scrap frames you don't want. They're simply left out; nothing is deleted.</small></span></label>`}
+        <label class="radio check"><input type="checkbox" data-act="clearprev" ${S.clearPreviews ? "checked" : ""}>
+          <span>Clear this wedding's previews after exporting <span id="wedPrev" class="muted"></span>
+          <small>Roll Merge keeps preview pictures of every photo so they show quickly, and over time they take up space. Ticking this deletes this wedding's previews once the export has finished. Your photos, your progress and the exported copies are not touched.
+          <b>If you'll come back to work on this wedding again, leave it unticked</b>, or clear previews later from the Folder screen.</small></span></label>
         <button class="primary bigbtn" data-act="export" ${complete || (S.partialExport && merged.length) ? "" : "disabled"}>${complete ? `Export ${total} copies`
           : S.partialExport ? (merged.length ? `Export ${merged.length} copies, leave out ${total - merged.length}` : "Place at least one photo first")
           : "Place every photo first"}</button>
@@ -1344,9 +1382,18 @@ function renderReview() {
     </div>
   </main>`;
   renderExportStatus();
+  showWeddingPreviewSize();
   S.flashIds = null;
   const input = document.getElementById("renameFolder");
   if (input) { input.focus(); input.select(); }
+}
+
+// How much space this wedding's previews use, next to the "clear after exporting" box
+function showWeddingPreviewSize() {
+  api("/api/cache?scope=wedding").then(c => {
+    const el = document.getElementById("wedPrev");
+    if (el) el.textContent = c.bytes ? `(about ${fmtBytes(c.bytes)})` : "";
+  }).catch(() => {});
 }
 
 function renderExportStatus() {
@@ -1361,6 +1408,7 @@ function renderExportStatus() {
   el.innerHTML = `<div class="jobbar"><div style="width:100%"></div></div>
     <p class="ok">Done: ${plural(exportJob.total, "copy").replace("copys", "copies")} saved.${exportJob.leftOut ? ` ${exportJob.leftOut} left out.` : ""}</p>
     <div class="muted mono" style="font-size:12px;word-break:break-all">${esc(exportJob.outdir)}</div>
+    ${exportJob.previews_freed != null ? `<p class="muted" style="font-size:12px">Cleared ${fmtBytes(exportJob.previews_freed)} of preview pictures for this wedding.</p>` : ""}
     ${exportJob.exif_skipped ? `<p class="muted" style="font-size:12px">${exportJob.exif_skipped} non-JPEG file(s) got numbered names but no capture time. Sort by file name to be safe.</p>` : ""}
     <p><button class="small" data-act="reveal">Open folder</button></p>`;
 }
@@ -1417,9 +1465,9 @@ function openPhotos(list, i, opts) { overlay = Object.assign({kind: "photo", lis
 async function render() {
   if (stopped) return;
   if (view === "home" || !S) {
-    let recent = [];
-    try { recent = await api("/api/recent"); } catch (e) {}
-    renderHome(recent);
+    let recent = [], cache = null;
+    try { [recent, cache] = await Promise.all([api("/api/recent"), api("/api/cache")]); } catch (e) {}
+    renderHome(recent, cache);
   }
   else if (view === "setup") renderSetup();
   else if (view === "merge") renderMerge();
@@ -1472,6 +1520,7 @@ app.addEventListener("input", e => {
 app.addEventListener("change", e => {
   const t = e.target;
   if (t.dataset.act === "partial") { S.partialExport = t.checked; renderReview(); return; }
+  if (t.dataset.act === "clearprev") { S.clearPreviews = t.checked; showWeddingPreviewSize(); return; }
   if (t.dataset.act === "mode") { setMode(t.checked ? t.dataset.mode : null); return; }
   if (t.dataset.act === "namemode") { S.nameMode = t.value; save(); renderReview(); if (t.value === "custom") document.getElementById("prefix").focus(); }
 });
@@ -1830,6 +1879,7 @@ async function handle(e) {
     case "recover": return recover(+d.id);
     case "recoverall": return recoverAll();
     case "revertreview": return revertReview();
+    case "clearcache": return clearCache();
     case "viewmerged": {
       if (view === "merge" && S.mode === "remove") return sendToBoard(+d.k);
       if (view === "merge" && S.mode === "banish") return banishPlaced(+d.k);
